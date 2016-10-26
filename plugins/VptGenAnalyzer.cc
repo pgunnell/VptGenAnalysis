@@ -39,6 +39,13 @@ struct MiniEvent_t
 {
   Int_t nw;
   Float_t w[500];
+  Int_t nl;
+  Int_t pid[20],charge[20];
+  Float_t pt[20],eta[20],phi[20],m[20];
+  Float_t dressed_pt[20],dressed_eta[20],dressed_phi[20],dressed_m[20];
+  Float_t imbalance_pt[3],imbalance_eta[3], imbalance_phi[3];
+  Int_t id1, id2;
+  Float_t x1, x2, qscale;
 };
 
 typedef reco::Particle::LorentzVector LorentzVector;
@@ -55,6 +62,7 @@ private:
   virtual void beginJob() override;
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
+  void resetMiniEvent();
   
   bool isBHadron(const reco::Candidate* p) const;
   bool isBHadron(const unsigned int pdgId) const;
@@ -84,8 +92,27 @@ VptGenAnalyzer::VptGenAnalyzer(const edm::ParameterSet &pset) :
   fjLepDef_ = std::shared_ptr<JetDef>(new JetDef(fastjet::antikt_algorithm, leptonConeSize_));
   
   tree_=fs->make<TTree>("data","data");
-  tree_->Branch("nw", &ev_.nw, "nw/F");
+  tree_->Branch("nw", &ev_.nw, "nw/I");
   tree_->Branch("w",   ev_.w,  "w[nw]/F");
+
+  tree_->Branch("nl",     &ev_.nl,     "nl/I");
+  tree_->Branch("pid",     ev_.pid,    "pid[nl]/I");
+  tree_->Branch("charge",  ev_.charge, "charge[nl]/I");
+  tree_->Branch("pt",      ev_.pt,     "pt[nl]/F");
+  tree_->Branch("eta",     ev_.eta,    "eta[nl]/F");
+  tree_->Branch("phi",     ev_.phi,    "phi[nl]/F");
+  tree_->Branch("dressed_pt",       ev_.dressed_pt,      "dressed_pt[nl]/F");
+  tree_->Branch("dressed_eta",      ev_.dressed_eta,     "dressed_eta[nl]/F");
+  tree_->Branch("dressed_phi",      ev_.dressed_phi,     "dressed_phi[nl]/F");
+  tree_->Branch("imbalance_pt",     ev_.imbalance_pt,    "imbalance_pt[3]/F");
+  tree_->Branch("imbalance_eta",    ev_.imbalance_eta,   "imbalance_eta[3]/F");
+  tree_->Branch("imbalance_phi",    ev_.imbalance_phi,   "imbalance_phi[3]/F");
+
+  tree_->Branch("id1",     &ev_.id1,    "id1/I");
+  tree_->Branch("id2",     &ev_.id2,    "id2/I");
+  tree_->Branch("x1",      &ev_.x1,     "x1/F");
+  tree_->Branch("x2",      &ev_.x2,     "x2/F");
+  tree_->Branch("qscale",  &ev_.qscale, "qscale/F");
 }
 
 
@@ -100,12 +127,13 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 {
    using namespace edm;
 
+   resetMiniEvent();
+
    //event weights
    edm::Handle<GenEventInfoProduct> evt;
    iEvent.getByToken( generatorToken_,evt);   
    edm::Handle<LHEEventProduct> evet;
    iEvent.getByToken(generatorlheToken_, evet);
-   ev_.nw=0;
    if(evet.isValid())
      {
        double asdd=evet->originalXWGTUP();
@@ -114,14 +142,15 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	 ev_.w[ev_.nw]=evt->weight()*asdde/asdd;
 	 ev_.nw++;
        }
+     }
 
    //get genParticles
    edm::Handle<edm::View<reco::Candidate> > genParticleHandle;
    iEvent.getByToken(genParticleToken_, genParticleHandle);
 
    // Collect stable leptons and neutrinos, compute momentum-balance flavours
-   std::vector<size_t> lepPhoIdxs,nuIdxs;
-   LorentzVector balance(0,0,0,0), chBalance(0,0,0,0);
+   std::vector<size_t> lepPhoIdxs;
+   std::vector<LorentzVector> balance(3,LorentzVector(0,0,0,0));
    for ( size_t i=0, n=genParticleHandle->size(); i<n; ++i )
      {
        const reco::Candidate& p = genParticleHandle->at(i);
@@ -130,11 +159,11 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        //if ( p.mother()->status() == 4 ) continue; // Treat particle as hadronic if directly from the incident beam (protect orphans in MINIAOD)
 
        //fiducial cut
-       if ( p.pt()<0.5 || fabs(p.eta())>4.7) continue;
-
+       if ( p.pt()<0.05 || fabs(p.eta())>4.7) continue;
+       
        //momentum-balance
-       balance += p.p4();
-       if( fabs(p.eta())<2.4 && p.charge()!=0) chBalance += p.p4();
+       balance[1] += p.p4();
+       if( fabs(p.eta())<2.4 && p.charge()!=0) balance[2] += p.p4();
 
        //save leptons and neutrinos (exclude b-hadrons)
        if ( isFromHadron(&p) ) continue;
@@ -144,12 +173,21 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	 case 11: case 13: case 22: // leptons and photons
 	   lepPhoIdxs.push_back(i);
 	   break;
-	 case 12: case 14: case 16: //neutrions
-	   nuIdxs.push_back(i);
+	 case 12: case 14: case 16: //neutrinos
+	   balance[0] -= p.p4();
 	   break;
 	 }
      }
 
+   //fill imbalance kinematics
+   for(size_t i=0; i<3; i++)
+     {
+       balance[i] *= -1;
+       ev_.imbalance_pt[i]=balance[i].pt();
+       ev_.imbalance_eta[i]=balance[i].eta();
+       ev_.imbalance_phi[i]=balance[i].phi();
+     }
+   
    // build dressed leptons with anti-kt(0.1) algorithm
    std::vector<fastjet::PseudoJet> fjLepInputs;
    fjLepInputs.reserve(lepPhoIdxs.size());
@@ -163,8 +201,7 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    fastjet::ClusterSequence fjLepClusterSeq(fjLepInputs, *fjLepDef_);
    std::vector<fastjet::PseudoJet> fjLepJets = fastjet::sorted_by_pt(fjLepClusterSeq.inclusive_jets(leptonMinPt_));
    
-   //prune the output
-   std::vector<std::pair<reco::CandidatePtr,LorentzVector > > lepJets;
+   //prune the output and save the information on the leptons
    for ( auto& fjJet : fjLepJets )
      {
        if ( abs(fjJet.eta()) > leptonMaxEta_ ) continue;
@@ -187,10 +224,21 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        if ( lepCand.isNull() ) continue;
        if ( lepCand->pt() < fjJet.pt()/2 ) continue; // Central lepton must be the major component
        
-       LorentzVector dressedP4(fjJet.px(), fjJet.py(), fjJet.pz(), fjJet.E());
-       lepJets.push_back( std::pair<reco::CandidatePtr, LorentzVector>(lepCand,dressedP4) );
+       ev_.pid[ev_.nl]=lepCand->pdgId();
+       ev_.charge[ev_.nl]=lepCand->charge();
+       ev_.pt[ev_.nl]=lepCand->pt();
+       ev_.eta[ev_.nl]=lepCand->eta();
+       ev_.phi[ev_.nl]=lepCand->phi();
+       ev_.m[ev_.nl]=lepCand->mass();
+       ev_.dressed_pt[ev_.nl]=fjJet.pt();
+       ev_.dressed_eta[ev_.nl]=fjJet.eta();
+       ev_.dressed_phi[ev_.nl]=fjJet.phi();
+       ev_.dressed_m[ev_.nl]=fjJet.m();
+       ev_.nl++;
      }
-     }
+     
+
+   tree_->Fill();
 }
    
 bool VptGenAnalyzer::isFromHadron(const reco::Candidate* p) const
@@ -243,23 +291,34 @@ bool VptGenAnalyzer::isBHadron(const unsigned int absPdgId) const
   return false;
 }
 
+//
+void VptGenAnalyzer::resetMiniEvent()
+{
+  ev_.nw=0; 
+  ev_.nl=0;
+  for(size_t i=0; i<20; i++)
+    {
+      ev_.pt[i]=0; ev_.eta[i]=0; ev_.phi[i]=0; ev_.m[i]=0;
+      ev_.dressed_pt[i]=0; ev_.dressed_eta[i]=0; ev_.dressed_phi[i]=0; ev_.dressed_m[i]=0;
+    }
+  for(size_t j=0; j<3; j++)
+    {
+      ev_.imbalance_pt[j]=0;	ev_.imbalance_eta[j]=0;	ev_.imbalance_phi[j]=0;
+    }
+}
 
-
-// ------------ method called once each job just before starting event loop  ------------
-void 
-VptGenAnalyzer::beginJob()
+//
+void VptGenAnalyzer::beginJob()
 {
 }
 
-// ------------ method called once each job just after ending the event loop  ------------
-void 
-VptGenAnalyzer::endJob() 
+//
+void VptGenAnalyzer::endJob() 
 {
 }
 
-// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
-void
-VptGenAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+//
+void VptGenAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
