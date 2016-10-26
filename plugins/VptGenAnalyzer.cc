@@ -33,6 +33,7 @@
 #include "fastjet/JetDefinition.hh"
 #include "fastjet/ClusterSequence.hh" 
 
+#include "TH1F.h"
 #include "TTree.h"
 
 struct MiniEvent_t
@@ -76,6 +77,7 @@ private:
   std::shared_ptr<JetDef> fjLepDef_;
   
   edm::Service<TFileService> fs;
+  TH1F *wgtH_;
   TTree *tree_;
   MiniEvent_t ev_;
 };
@@ -90,6 +92,9 @@ VptGenAnalyzer::VptGenAnalyzer(const edm::ParameterSet &pset) :
   leptonMaxEta_(pset.getParameter<double>("leptonMaxEta"))
 {
   fjLepDef_ = std::shared_ptr<JetDef>(new JetDef(fastjet::antikt_algorithm, leptonConeSize_));
+
+  
+  wgtH_ = fs->make<TH1F>("weights",";Weight number;Weight sum",500,0,500);
   
   tree_=fs->make<TTree>("data","data");
   tree_->Branch("nw", &ev_.nw, "nw/I");
@@ -155,7 +160,15 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	     ev_.nw++;
 	   }
 	 }
+       else
+	 {
+	   ev_.nw=1;
+	   ev_.w[0]=evt->weight();
+	 }
      }
+
+   //increment weight histogram for posterior normalization
+   for(Int_t i=0; i<ev_.nw; i++) wgtH_->Fill(i,ev_.w[i]);
 
    //get genParticles
    edm::Handle< reco::GenParticleCollection > genParticleHandle;

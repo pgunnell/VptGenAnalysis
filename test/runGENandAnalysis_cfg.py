@@ -14,18 +14,6 @@ options.register('output',
                  VarParsing.varType.string,
                  "Output file name"
                  )
-options.register('module',
-		 'ZPt',
-                 VarParsing.multiplicity.singleton,
-                 VarParsing.varType.string,
-                 "module to run"
-                 )
-options.register('LHEweightNumber',
-                 0,
-                 VarParsing.multiplicity.singleton,
-                 VarParsing.varType.int,
-                 "event weight to use"
-                 )
 options.register('saveEDM',
                  False,
                  VarParsing.multiplicity.singleton,
@@ -110,7 +98,7 @@ process.ProductionFilterSequence = cms.Sequence(process.generator)
 
 #tfile service                                                                                                                                                                
 process.TFileService = cms.Service("TFileService",
-				   fileName = cms.string(options.output)
+				   fileName = cms.string(options.output+'.root')
 				   )
 
 
@@ -148,5 +136,10 @@ else:
 for path in process.paths:
 	getattr(process,path)._seq = process.ProductionFilterSequence * getattr(process,path)._seq
 
+#add RIVET routine
+from UserCode.RivetAnalysis.rivet_customise import *
+process = customiseZPt(process,0)
+process.rivetAnalyzer.OutputFile = cms.string(options.output + '.yoda')
+process.rivetAnalyzer.HepMCCollection = cms.InputTag('generatorSmeared')
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 5000
