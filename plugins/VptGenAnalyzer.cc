@@ -68,7 +68,7 @@ private:
   bool isBHadron(const unsigned int pdgId) const;
   bool isFromHadron(const reco::Candidate* p) const;
   
-  edm::EDGetTokenT<edm::View<reco::Candidate> > genParticleToken_;
+  edm::EDGetTokenT<reco::GenParticleCollection> genParticleToken_;
   edm::EDGetTokenT<GenEventInfoProduct> generatorToken_;
   edm::EDGetTokenT<LHEEventProduct> generatorlheToken_;
   const float leptonConeSize_, leptonMinPt_, leptonMaxEta_;
@@ -82,9 +82,9 @@ private:
 
 //
 VptGenAnalyzer::VptGenAnalyzer(const edm::ParameterSet &pset) :
-  genParticleToken_(consumes<edm::View<reco::Candidate> >(pset.getParameter<edm::InputTag>("genParticles"))),
-  generatorToken_(consumes<GenEventInfoProduct>(edm::InputTag("generator"))),
-  generatorlheToken_(consumes<LHEEventProduct>(edm::InputTag("externalLHEProducer",""))),
+  genParticleToken_(consumes<reco::GenParticleCollection>(pset.getParameter<edm::InputTag>("genParticles"))),
+  generatorToken_(consumes<GenEventInfoProduct>(pset.getParameter<edm::InputTag>("genEventInfoProduct"))),
+  generatorlheToken_(consumes<LHEEventProduct>(pset.getParameter<edm::InputTag>("lheEventProduct"))),
   leptonConeSize_(pset.getParameter<double>("leptonConeSize")),
   leptonMinPt_(pset.getParameter<double>("leptonMinPt")),
   leptonMaxEta_(pset.getParameter<double>("leptonMaxEta"))
@@ -101,9 +101,11 @@ VptGenAnalyzer::VptGenAnalyzer(const edm::ParameterSet &pset) :
   tree_->Branch("pt",      ev_.pt,     "pt[nl]/F");
   tree_->Branch("eta",     ev_.eta,    "eta[nl]/F");
   tree_->Branch("phi",     ev_.phi,    "phi[nl]/F");
+  tree_->Branch("m",       ev_.m,      "m[nl]/F");
   tree_->Branch("dressed_pt",       ev_.dressed_pt,      "dressed_pt[nl]/F");
   tree_->Branch("dressed_eta",      ev_.dressed_eta,     "dressed_eta[nl]/F");
   tree_->Branch("dressed_phi",      ev_.dressed_phi,     "dressed_phi[nl]/F");
+  tree_->Branch("dressed_m",        ev_.dressed_m,       "dressed_m[nl]/F");
   tree_->Branch("imbalance_pt",     ev_.imbalance_pt,    "imbalance_pt[3]/F");
   tree_->Branch("imbalance_eta",    ev_.imbalance_eta,   "imbalance_eta[3]/F");
   tree_->Branch("imbalance_phi",    ev_.imbalance_phi,   "imbalance_phi[3]/F");
@@ -134,18 +136,29 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    iEvent.getByToken( generatorToken_,evt);   
    edm::Handle<LHEEventProduct> evet;
    iEvent.getByToken(generatorlheToken_, evet);
-   if(evet.isValid())
+   if(evt.isValid())
      {
-       double asdd=evet->originalXWGTUP();
-       for(unsigned int i=0  ; i<evet->weights().size();i++){
-	 double asdde=evet->weights()[i].wgt;
-	 ev_.w[ev_.nw]=evt->weight()*asdde/asdd;
-	 ev_.nw++;
-       }
+       //PDF info
+       ev_.qscale = evt->pdf()->scalePDF;
+       ev_.x1     = evt->pdf()->x.first;
+       ev_.x2     = evt->pdf()->x.second;
+       ev_.id1    = evt->pdf()->id.first;
+       ev_.id2    = evt->pdf()->id.second;
+       
+       //event weights
+       if(evet.isValid())
+	 {
+	   double asdd=evet->originalXWGTUP();
+	   for(unsigned int i=0  ; i<evet->weights().size();i++){
+	     double asdde=evet->weights()[i].wgt;
+	     ev_.w[ev_.nw]=evt->weight()*asdde/asdd;
+	     ev_.nw++;
+	   }
+	 }
      }
 
    //get genParticles
-   edm::Handle<edm::View<reco::Candidate> > genParticleHandle;
+   edm::Handle< reco::GenParticleCollection > genParticleHandle;
    iEvent.getByToken(genParticleToken_, genParticleHandle);
 
    // Collect stable leptons and neutrinos, compute momentum-balance flavours
@@ -205,23 +218,20 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    for ( auto& fjJet : fjLepJets )
      {
        if ( abs(fjJet.eta()) > leptonMaxEta_ ) continue;
-       
+
+       //match the lepton candidate of this jet
+       const reco::Candidate *lepCand=0;       
        const std::vector<fastjet::PseudoJet> fjConstituents = fastjet::sorted_by_pt(fjJet.constituents());
-       std::vector<reco::CandidatePtr> constituents;
-       reco::CandidatePtr lepCand;
        for ( auto& fjConstituent : fjConstituents )
 	 {
 	   const size_t index = fjConstituent.user_index();
-	   reco::CandidatePtr cand = genParticleHandle->ptrAt(index);
-	   const int absPdgId = abs(cand->pdgId());
-	   if ( absPdgId == 11 or absPdgId == 13 )
-	     {
-	       if ( lepCand.isNonnull() and lepCand->pt() > cand->pt() ) continue; // Choose one with highest pt
-	       lepCand = cand;
-	     }
-	   constituents.push_back(cand);
+	   const reco::Candidate& p  = genParticleHandle->at(index);
+	   const int absPdgId = abs(p.pdgId());
+	   if ( absPdgId != 11 && absPdgId != 13 ) continue;
+	   if ( lepCand!=0 and lepCand->pt() > p.pt()) continue;
+	   lepCand = &p;	   
 	 }
-       if ( lepCand.isNull() ) continue;
+       if ( lepCand==0 ) continue;
        if ( lepCand->pt() < fjJet.pt()/2 ) continue; // Central lepton must be the major component
        
        ev_.pid[ev_.nl]=lepCand->pdgId();
@@ -237,10 +247,11 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        ev_.nl++;
      }
      
-
-   tree_->Fill();
+   //all done, save info
+   if(ev_.nl>0) tree_->Fill();
 }
-   
+ 
+//  
 bool VptGenAnalyzer::isFromHadron(const reco::Candidate* p) const
 {
   for ( size_t i=0, n=p->numberOfMothers(); i<n; ++i )
@@ -256,6 +267,7 @@ bool VptGenAnalyzer::isFromHadron(const reco::Candidate* p) const
 }
 
 
+//
 bool VptGenAnalyzer::isBHadron(const reco::Candidate* p) const
 {
   const unsigned int absPdgId = abs(p->pdgId());
@@ -272,6 +284,7 @@ bool VptGenAnalyzer::isBHadron(const reco::Candidate* p) const
   return true;
 }
 
+//
 bool VptGenAnalyzer::isBHadron(const unsigned int absPdgId) const
 {
   if ( absPdgId <= 100 ) return false; // Fundamental particles and MC internals
@@ -319,12 +332,11 @@ void VptGenAnalyzer::endJob()
 
 //
 void VptGenAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
   desc.setUnknown();
   descriptions.addDefault(desc);
 }
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(VptGenAnalyzer);
