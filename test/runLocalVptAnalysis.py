@@ -4,6 +4,7 @@ import optparse
 import json
 import sys
 import os
+from array import array
 
 from UserCode.VptGenAnalysis.vecbosKinUtils import *
 
@@ -18,14 +19,28 @@ def runAnalysis(fileName,outFileName):
     #book histograms
     observablesH={}
     observablesH['mll']=ROOT.TH1F('mll',';Dilepton invariant mass [GeV];Events',50,66,116)
+    observablesH['y']=ROOT.TH2F('y',';Dilepton rapidity;Incoming partons;Events',50,-3,3,121,0,121)
+    observablesH['ypos']=ROOT.TH2F('ypos',';Positive lepton rapidity;Incoming partons;Events',50,-3,3,121,0,121)
+    observablesH['yneg']=ROOT.TH2F('yneg',';Negative lepton rapidity;Incoming partons;Events',50,-3,3,121,0,121)
+
+    phistarBins=[2.000000e-03,6.000000e-03,1.000000e-02,1.400000e-02,1.800000e-02,2.200000e-02,2.650000e-02,3.150000e-02,3.650000e-02,4.200000e-02,4.800000e-02,5.400000e-02,6.050000e-02,6.800000e-02,7.650000e-02,8.600000e-02,9.650000e-02,1.080000e-01,1.210000e-01,1.365000e-01,1.550000e-01,1.770000e-01,2.040000e-01,2.385000e-01,2.850000e-01,3.515000e-01,4.575000e-01,6.095000e-01,8.065000e-01,1.035500e+00,1.324500e+00,1.721500e+00,2.234500e+00,2.899500e+00,4.138500e+00,7.500000e+00]
+    observablesH['phistar']=ROOT.TH2F('phistar',';#phi^{*};Weight number;Events',len(phistarBins)-1,array('d',phistarBins),200,0,200)
+
+    ptllBins=[1.000000e+00,3.000000e+00,5.000000e+00,7.000000e+00,9.000000e+00,1.100000e+01,1.300000e+01,1.500000e+01,1.700000e+01,1.900000e+01,2.125000e+01,2.375000e+01,2.625000e+01,2.875000e+01,3.150000e+01,3.450000e+01,3.750000e+01,4.050000e+01,4.350000e+01,4.650000e+01,4.950000e+01,5.250000e+01,5.550000e+01,5.900000e+01,6.300000e+01,6.750000e+01,7.250000e+01,7.750000e+01,8.250000e+01,9.000000e+01,1.000000e+02,1.150000e+02,1.375000e+02,1.625000e+02,1.875000e+02,2.250000e+02,2.750000e+02,3.250000e+02,3.750000e+02,4.350000e+02,5.100000e+02,6.000000e+02,7.750000e+02]
+    observablesH['ptll']=ROOT.TH2F('ptll',';Dilepton transverse momentum [GeV];Weight number;Events',len(ptllBins)-1,array('d',ptllBins),200,0,200)
+
+    observablesH['phistarvsptll']=ROOT.TH2F('phistarvsptll',';Dilepton transverse momentum [GeV];;#phi^{*};Events',len(ptllBins)-1,array('d',ptllBins),len(phistarBins)-1,array('d',phistarBins))
+
     for var in observablesH:
         observablesH[var].SetDirectory(0)
         observablesH[var].Sumw2()
 
 
     #loop over events in tree
-    tree=ROOT.TChain('analysis/data')
-    tree.AddFile(fileName)
+    fIn=ROOT.TFile.Open(fileName)
+    tree=fIn.Get('analysis/data')
+    observablesH['weights']=fIn.Get('analysis/weights')
+    observablesH['weights'].Clone()
     totalEntries=tree.GetEntries()
     for i in xrange(0,totalEntries):
 
@@ -39,8 +54,8 @@ def runAnalysis(fileName,outFileName):
             selLep.append( il )            
         if len(selLep)==0: continue
 
-
-
+        incPartonsBin=(tree.id1+5)*11+(tree.id2+5)
+        
         #dilepton analysis
         if len(selLep)==2:
 
@@ -53,11 +68,25 @@ def runAnalysis(fileName,outFileName):
             l1.SetPtEtaPhiM( tree.dressed_pt[ selLep[0] ], tree.dressed_eta[ selLep[0] ], tree.dressed_phi[ selLep[0] ], tree.dressed_m[ selLep[0] ] )
             l2.SetPtEtaPhiM( tree.dressed_pt[ selLep[1] ], tree.dressed_eta[ selLep[1] ], tree.dressed_phi[ selLep[1] ], tree.dressed_m[ selLep[1] ] )
             
-            mll=(l1+l2).M()
+            #dilepton invariant mass
+            ll=l1+l2
+            mll=ll.M()
             if mll<66 or mll>116 : continue
                 
             observablesH['mll'].Fill(mll,tree.w[0])
+            observablesH['y'].Fill(ll.Rapidity(),incPartonsBin,tree.w[0])
+            if  tree.charge[ selLep[0] ] >0 :
+                observablesH['ypos'].Fill(l1.Rapidity(),incPartonsBin,tree.w[0])
+                observablesH['yneg'].Fill(l2.Rapidity(),incPartonsBin,tree.w[0])
+            else:
+                observablesH['ypos'].Fill(l2.Rapidity(),incPartonsBin,tree.w[0])
+                observablesH['yneg'].Fill(l1.Rapidity(),incPartonsBin,tree.w[0])
 
+            phistar=calcPhiStar(l1,l2)
+            observablesH['phistarvsptll'].Fill(ll.Pt(),phistar,tree.w[0])
+            for iw in xrange(0,tree.nw):
+                observablesH['phistar'].Fill(phistar,iw,tree.w[iw])
+                observablesH['ptll'].Fill(ll.Pt(),iw,tree.w[iw])                
 
     #save results
     fOut=ROOT.TFile.Open(outFileName,'RECREATE')
