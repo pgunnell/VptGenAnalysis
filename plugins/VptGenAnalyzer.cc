@@ -149,6 +149,10 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        ev_.x2     = evt->pdf()->x.second;
        ev_.id1    = evt->pdf()->id.first;
        ev_.id2    = evt->pdf()->id.second;
+
+       //default event weight
+       ev_.nw=1;
+       ev_.w[0]=evt->weight();
        
        //event weights
        if(evet.isValid())
@@ -159,11 +163,6 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	     ev_.w[ev_.nw]=evt->weight()*asdde/asdd;
 	     ev_.nw++;
 	   }
-	 }
-       else
-	 {
-	   ev_.nw=1;
-	   ev_.w[0]=evt->weight();
 	 }
      }
 
