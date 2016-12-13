@@ -27,7 +27,7 @@ options.register('seed',
                  "seed to use"
                  )
 options.register('input', 
-		 '/store/cmst3/user/psilva/Wmass/powhegbox_Zj/seed_6_pwgevents.lhe',
+		 '/store/cmst3/user/psilva/Wmass/Zj/seed_9_pwgevents.lhe',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "input file to process"
