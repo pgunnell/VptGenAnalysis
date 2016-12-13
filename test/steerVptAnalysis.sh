@@ -49,9 +49,9 @@ case $WHAT in
 		    continue
 		fi
 		fcounter=$((fcounter+1))
-		for i in "${!cffList[@]}"; do 
-		    cff=${cffList[$i]};
-		    tag=${cffTags[$i]};
+		for k in "${!cffList[@]}"; do 
+		    cff=${cffList[$k]};
+		    tag=${cffTags[$k]};
 		    echo "${proc}_${tag}_${fcounter} ${cff}"
 		    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} hadronizer=${cff}";
 		done
