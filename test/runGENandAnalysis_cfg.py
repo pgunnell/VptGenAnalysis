@@ -1,5 +1,5 @@
 # Auto generated configuration file
-# using: 
+# using:mz 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
 # with command line options: UserCode/RivetAnalysis/python/Hadronizer_TuneCUETP8M1_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff.py --filein /store/cmst3/user/psilva/Wmass/powhegbox_Zj/seed_6_pwgevents.lhe --fileout file:Events_6.root --mc --eventcontent RAWSIM --datatier GEN --step GEN -n -1 --conditions 80X_mcRun2_asymptotic_2016_v1
@@ -18,7 +18,13 @@ options.register('saveEDM',
                  False,
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.bool,
-                 "event weight to use"
+                 "save EDM output"
+                 )
+options.register('seed',
+                 123456789,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.int,
+                 "seed to use"
                  )
 options.register('input', 
 		 '/store/cmst3/user/psilva/Wmass/powhegbox_Zj/seed_6_pwgevents.lhe',
@@ -27,7 +33,7 @@ options.register('input',
                  "input file to process"
                  )
 options.register('hadronizer',
-		 'powhegEmissionVeto_2p_LHE_pythia8',
+		 'TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "hardcoded hadronizer snippet to use"
@@ -56,14 +62,15 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 # Input source
-process.source = cms.Source("LHESource",
-			    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-			    fileNames = cms.untracked.vstring(options.input.split(',')),
-			    inputCommands = cms.untracked.vstring('keep *')
-)
+process.source=cms.Source('EmptySource')
+if 'LHE' in options.hadronizer:
+	process.source = cms.Source("LHESource",
+				    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
+				    fileNames = cms.untracked.vstring(options.input.split(',')),
+				    inputCommands = cms.untracked.vstring('keep *')
+				    )
 
 process.options = cms.untracked.PSet(
-
 )
 
 # Production Info
@@ -106,11 +113,16 @@ if 'TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.had
 if 'TuneEE_5C_8TeV_Herwigpp' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff import generator
         process.generator=generator.clone()
+if 'gmZ_TuneCUETP8M2T4_8TeV_pythia8' in options.hadronizer:
+	from UserCode.RivetAnalysis.gmZ_TuneCUETP8M2T4_8TeV_pythia8_cff import generator
+	process.generator=generator.clone()
 
 #disable primordial kT
 if 'primordialKToff' in options.hadronizer:
 	process.generator.PythiaParameters.processParameters.append('BeamRemnants:primordialKT = off')
 
+process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
+print 'Seed initiated to %d'%options.seed
 process.ProductionFilterSequence = cms.Sequence(process.generator)
 
 #tfile service                                                                                                                                                                

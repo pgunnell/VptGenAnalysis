@@ -7,8 +7,9 @@ outdir=/afs/cern.ch/user/p/psilva/work/Wmass/rivet/data
 case $WHAT in
     TEST )
 	cmsRun ${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py \
-	    output=/tmp/psilva/test0 input=/store/cmst3/user/psilva/Wmass/Wminusj/seed_9_cmsgrid_final.lhe \
-	    hadronizer=TuneCUETP8M1_powhegEmissionVeto_2p_LHE_pythia8;
+	    output=/tmp/psilva/test0 \
+	    hadronizer=TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8 seed=2
+	   #hadronizer=gmZ_TuneCUETP8M2T4_8TeV_pythia8 seed=1 maxEvents=5000
 	;;
     NTUPLE )
 
@@ -53,15 +54,16 @@ case $WHAT in
 		    cff=${cffList[$k]};
 		    tag=${cffTags[$k]};
 		    echo "${proc}_${tag}_${fcounter} ${cff}"
-		    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} hadronizer=${cff}";
+		    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} hadronizer=${cff} seed=${fcounter}";
 		done
 	    done
 	done
 
-	#for i in `seq 1 100`; do
-	#    num=$((i + 10000))
-	#    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/dy2mumu_ct10_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe hadronizer=powhegEmissionVeto_1p_LHE_pythia8"
-	#done
+#	for i in `seq 1 200`; do
+#	    num=$((i + 10000))
+#	    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/z_py8_${fcounter} hadronizer=gmZ_TuneCUETP8M2T4_8TeV_pythia8 seed=${i} maxEvents=10000";
+#	    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/dy2mumu_ct10_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe hadronizer=powhegEmissionVeto_1p_LHE_pythia8"
+#	done
 
 	;;
     MERGE )
