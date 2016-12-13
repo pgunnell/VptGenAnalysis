@@ -79,36 +79,35 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_v1', '')
 
 #generator definition
-if 'TuneCUETP8M2T4_powhegEmissionVeto_1p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M1_8TeV_powhegEmissionVeto_1p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M1_8TeV_powhegEmissionVeto_1p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4up_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4down_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4ISRup_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4ISRdown_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4FSRup_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
-if 'TuneCUETP8M2T4FSRdown_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
+if 'TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
 	process.generator=generator.clone()
 if 'TuneEE_5C_8TeV_Herwigpp' in options.hadronizer:
 	from UserCode.RivetAnalysis.Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff import generator
         process.generator=generator.clone()
 
-
-
+#disable primordial kT
 if 'primordialKToff' in options.hadronizer:
 	process.generator.PythiaParameters.processParameters.append('BeamRemnants:primordialKT = off')
 
