@@ -1,0 +1,111 @@
+#!/bin/bash
+
+WHAT=${1}
+
+outdir=/afs/cern.ch/user/p/psilva/work/Wmass/rivet/data
+script=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/scripts/wrapLocalAnalysisRun.sh;
+cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
+cffList=(
+    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+#    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff:primordialKToff
+#    Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+#    Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+#    Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff    
+#    Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff  
+#    Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+#    Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+#    Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff
+)
+cffTags=(
+    nominal
+#    noPrimKt
+#    ueup
+#    uedn
+#    fsrup
+#    fsrdown
+#    isrup
+#    isrdown
+#    hwpp
+)
+
+export LSB_JOB_REPORT_MAIL=N
+
+case $WHAT in
+    TEST )
+	cmsRun ${cfg} \
+	    output=/tmp/test \
+	    hadronizer=TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8 \
+	    seed=1 \
+	    maxEvents=1000
+	;;
+    NTUPLE )
+
+	mkdir -p ${outdir}	
+
+	for proc in Wminusk; do #Zj Wplusj Wminusj; do
+	    lheDir=/store/cmst3/user/psilva/Wmass/${proc}
+	    fcounter=1
+	    a=(`eos ls ${lheDir}`)
+	    for i in ${a[@]}; do
+		if [[ $i == *"cmsgrid"* ]]
+		then
+		    continue
+		fi
+		fcounter=$((fcounter+1))
+		for k in "${!cffList[@]}"; do 
+		    cff=${cffList[$k]};
+		    tag=${cffTags[$k]};
+		    echo "${proc}_${tag}_${fcounter} ${cff}"
+		    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} hadronizer=${cff} seed=${fcounter}";
+		done
+	    done
+	done
+
+#	for i in `seq 1 200`; do
+#	    num=$((i + 10000))
+#	    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/z_py8_${fcounter} hadronizer=gmZ_TuneCUETP8M2T4_8TeV_pythia8 seed=${i} maxEvents=10000";
+#	    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/dy2mumu_ct10_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe hadronizer=powhegEmissionVeto_1p_LHE_pythia8"
+#	done
+
+	;;
+    MERGE )
+	mkdir -p ${outdir}/Chunks
+	for baseProc in Zj Wplusj Wminusj; do
+	    for k in "${!cffTags[@]}"; do 
+		proc="${baseProc}_${cffTags[$k]}";
+
+		regex=".*${proc}_[0-9]*\.yoda$"
+		a=(`exec find ${outdir} -regex ${regex}`)
+		if [ ${#a[@]} -eq 0 ]; then
+		    continue
+		fi
+
+		yodaFiles=""
+		rootFiles=""
+		for i in ${a[@]}; do 
+		    yodaFiles="${yodaFiles} ${i}"
+		    rootFiles="${rootFiles} ${i/yoda/root}"
+		done
+
+		yodamerge -o ${outdir}/${proc}.yoda ${yodaFiles}
+		hadd -f -k ${outdir}/${proc}.root ${rootFiles}
+		mv -t ${outdir}/Chunks ${yodaFiles}
+		mv -t ${outdir}/Chunks ${rootFiles}
+	    done
+	done
+	;;
+
+    PLOT )
+	rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+	    -o ~/public/html/Zj \
+	    ${outdir}/Zj_nominal.yoda:'Zj CUETP8M2T4' \
+	    ${outdir}/Zj_fsrup.yoda:'FSR up' \
+	    ${outdir}/Zj_fsrdown.yoda:'FSR dn' \
+	    ${outdir}/Zj_isrup.yoda:'ISR up' \
+	    ${outdir}/Zj_isrdown.yoda:'ISR dn' \
+	    ${outdir}/Zj_ueup.yoda:'UE up' \
+	    ${outdir}/Zj_uedn.yoda:'UE dn' \
+	    ${outdir}/Zj_noPrimKt.yoda:'$k_{T}^{0}=0$'
+	;;
+esac

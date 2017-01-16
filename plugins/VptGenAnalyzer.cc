@@ -45,6 +45,7 @@ struct MiniEvent_t
   Float_t pt[20],eta[20],phi[20],m[20];
   Float_t dressed_pt[20],dressed_eta[20],dressed_phi[20],dressed_m[20];
   Float_t imbalance_pt[3],imbalance_eta[3], imbalance_phi[3];
+  Float_t vecbos_pt, vecbos_eta, vecbos_phi, vecbos_m;
   Int_t id1, id2;
   Float_t x1, x2, qscale;
 };
@@ -64,7 +65,15 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
   void resetMiniEvent();
-  
+  const reco::Candidate *getParticleMother(const reco::Candidate *p)
+  {
+    if(p==0) return 0;
+    const reco::Candidate *mother=p->mother();
+    if(mother==0) return 0;
+    if(mother->pdgId()==p->pdgId()) return getParticleMother(mother);
+    return mother;
+  }
+
   bool isBHadron(const reco::Candidate* p) const;
   bool isBHadron(const unsigned int pdgId) const;
   bool isFromHadron(const reco::Candidate* p) const;
@@ -114,6 +123,10 @@ VptGenAnalyzer::VptGenAnalyzer(const edm::ParameterSet &pset) :
   tree_->Branch("imbalance_pt",     ev_.imbalance_pt,    "imbalance_pt[3]/F");
   tree_->Branch("imbalance_eta",    ev_.imbalance_eta,   "imbalance_eta[3]/F");
   tree_->Branch("imbalance_phi",    ev_.imbalance_phi,   "imbalance_phi[3]/F");
+  tree_->Branch("vecbos_pt",        &ev_.vecbos_pt,      "vecbos_pt/F");
+  tree_->Branch("vecbos_eta",       &ev_.vecbos_eta,     "vecbos_eta/F");
+  tree_->Branch("vecbos_phi",       &ev_.vecbos_phi,     "vecbos_phi/F");
+  tree_->Branch("vecbos_m",         &ev_.vecbos_m,       "vecbos_m/F");
 
   tree_->Branch("id1",     &ev_.id1,    "id1/I");
   tree_->Branch("id2",     &ev_.id2,    "id2/I");
@@ -174,6 +187,7 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    iEvent.getByToken(genParticleToken_, genParticleHandle);
 
    // Collect stable leptons and neutrinos, compute momentum-balance flavours
+   
    std::vector<size_t> lepPhoIdxs;
    std::vector<LorentzVector> balance(3,LorentzVector(0,0,0,0));
    for ( size_t i=0, n=genParticleHandle->size(); i<n; ++i )
@@ -185,7 +199,7 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
        //fiducial cut
        if ( p.pt()<0.05 || fabs(p.eta())>4.7) continue;
-       
+     
        //momentum-balance
        balance[1] += p.p4();
        if( fabs(p.eta())<2.4 && p.charge()!=0) balance[2] += p.p4();
@@ -232,7 +246,7 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        if ( abs(fjJet.eta()) > leptonMaxEta_ ) continue;
 
        //match the lepton candidate of this jet
-       const reco::Candidate *lepCand=0;       
+       const reco::Candidate *lepCand=0,*lepMother=0;       
        const std::vector<fastjet::PseudoJet> fjConstituents = fastjet::sorted_by_pt(fjJet.constituents());
        for ( auto& fjConstituent : fjConstituents )
 	 {
@@ -242,6 +256,7 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	   if ( absPdgId != 11 && absPdgId != 13 ) continue;
 	   if ( lepCand!=0 and lepCand->pt() > p.pt()) continue;
 	   lepCand = &p;	   
+	   lepMother=getParticleMother(&p);
 	 }
        if ( lepCand==0 ) continue;
        if ( lepCand->pt() < fjJet.pt()/2 ) continue; // Central lepton must be the major component
@@ -257,6 +272,14 @@ void VptGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        ev_.dressed_phi[ev_.nl]=fjJet.phi();
        ev_.dressed_m[ev_.nl]=fjJet.m();
        ev_.nl++;
+
+       if(lepMother==0) continue;
+       int absMotherId( abs(lepMother->pdgId()) );
+       if(absMotherId!=23 && absMotherId!=24) continue;
+       ev_.vecbos_pt=lepMother->pt();
+       ev_.vecbos_eta=lepMother->eta();
+       ev_.vecbos_phi=lepMother->phi();
+       ev_.vecbos_m=lepMother->mass();
      }
      
    //all done, save info
@@ -330,6 +353,7 @@ void VptGenAnalyzer::resetMiniEvent()
     {
       ev_.imbalance_pt[j]=0;	ev_.imbalance_eta[j]=0;	ev_.imbalance_phi[j]=0;
     }
+  ev_.vecbos_pt=0; ev_.vecbos_eta=0; ev_.vecbos_phi=0; ev_.vecbos_m=0;
 }
 
 //
