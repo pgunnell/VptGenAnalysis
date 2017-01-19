@@ -117,38 +117,42 @@ def fillHistos(opt) :
         for obj in fTempl.GetListOfKeys():
             keyName=obj.GetName()
             var,wgt,iniWgt = keyName.split('_')
+            if not var in ['v1','v2','v4','v5','v6','v7','v8','v9','v10','v12'] : continue
             key=(int(var.replace('v','')),int(wgt.replace('w','')),int(iniWgt.replace('p','')))
             allHistos[key]=fTempl.Get(keyName).Clone()
             allHistos[key].Reset('ICE')
             allHistos[key].SetDirectory(0)
     except:
-        data=parseDataFromTree(opt,maxPerc=1,histos=None)
-        print data
-        print '[fillHistos] defining templates for %d variables and %d selected events'%(len(data[0][0]),len(data[0]))
-        raw_input()
+        pass
 
-        #compute quantiles for 100 bins
-        q     = [i for i in xrange(0,101)] if data else None
-        qVals = np.percentile(np.array(data[0]),q, axis=0).T if data else None
+    data=parseDataFromTree(opt,maxPerc=1,histos=None)
+    print '[fillHistos] defining templates for %d variables and %d selected events'%(len(data[0][0]),len(data[0]))
 
-        #define binnings for the histos        
-        for iv in xrange(0,len(data[0][0])):
+    #compute quantiles for n bins
+    q     = [i for i in xrange(0,opt.nbins)] if data else None
+    qVals = np.percentile(np.array(data[0]),q, axis=0).T if data else None
 
-            #bin definition for this variable
-            binDef=[val for val in np.unique(qVals[iv]) if not np.isnan(val) ]
+    #define binnings for the histos        
+    for iv in xrange(0,len(data[0][0])):
 
-            for iw in xrange(0,len(data[1][0])):
-                for ip in xrange(0,len(data[2][0])):
-                    #start new histo (from template if available, otherwise use quantiles)
-                    key=(iv,iw,ip)
-                    keyName='v%d_w%d_p%d'%(iv,iw,ip)
-                    allHistos[key]=ROOT.TH1F(keyName,'%s;;Events / bin'%keyName,len(binDef)-1,array.array('d',binDef))
-                    allHistos[key].Sumw2()
-                    allHistos[key].SetDirectory(0)
+        #bin definition for this variable
+        binDef=[val for val in np.unique(qVals[iv]) if not np.isnan(val) ]
+
+        for iw in xrange(0,len(data[1][0])):
+            for ip in xrange(0,len(data[2][0])):
+
+                #start new histo (from template if available, otherwise use quantiles)
+                key=(iv,iw,ip)
+                if key in allHistos: continue
+
+                keyName='v%d_w%d_p%d'%(iv,iw,ip)
+                allHistos[key]=ROOT.TH1F(keyName,'%s;;Events / bin'%keyName,len(binDef)-1,array.array('d',binDef))
+                allHistos[key].Sumw2()
+                allHistos[key].SetDirectory(0)
 
 
     #fill histos 
-    parseDataFromTree(opt,maxPerc=50.,histos=allHistos)
+    parseDataFromTree(opt,maxPerc=100,histos=allHistos)
 
     #get initial sum of weights for normalization
     fIn=ROOT.TFile.Open('root://eoscms//eos/cms/%s'%opt.input)
@@ -179,12 +183,13 @@ def main():
     #configuration
     usage = 'usage: %prog [options]'
     parser = optparse.OptionParser(usage)
-    parser.add_option('-i', '--in',   dest='input',    help='input file [%default]',       default='/store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root', type='string')
-    parser.add_option('-o', '--out',  dest='output',   help='output file [%default]',      default='Zj_nominal.root',                                        type='string')
-    parser.add_option('-c', '--cuts', dest='cuts',     help='simple cuts to apply to the tree [%default]', default='nl==2',                                  type='string')
-    parser.add_option('-w', '--wgt',  dest='wgtList',  help='weight list (csv)[%default]', default='',                                                      type='string')
-    parser.add_option(      '--iniWgt',  dest='iniWgt',  help='include initial state weights [%default]', default=False,                                                      action='store_true')
-    parser.add_option(      '--templ',  dest='templ',  help='histogram templates (keep binning) [%default]', default=None,                               type='string')
+    parser.add_option('-i', '--in',     dest='input',   help='input file [%default]',       default='/store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root', type='string')
+    parser.add_option(      '--nbins',  dest='nbins',   help='n bins [%default]',           default=25,                                                       type=int)
+    parser.add_option('-o', '--out',    dest='output',  help='output file [%default]',      default='Zj_nominal.root',                                        type='string')
+    parser.add_option('-c', '--cuts',   dest='cuts',    help='simple cuts to apply to the tree [%default]', default='nl==2',                                  type='string')
+    parser.add_option('-w', '--wgt',    dest='wgtList', help='weight list (csv)[%default]', default='',                                                       type='string')
+    parser.add_option(      '--iniWgt', dest='iniWgt',  help='include initial state weights [%default]', default=False,                                       action='store_true')
+    parser.add_option(      '--templ',  dest='templ',   help='histogram templates (keep binning) [%default]', default=None,                                   type='string')
     (opt, args) = parser.parse_args()
 
     fillHistos(opt)

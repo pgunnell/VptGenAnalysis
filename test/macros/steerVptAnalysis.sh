@@ -8,23 +8,23 @@ cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
 cffList=(
     Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
 #    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff:primordialKToff
-#    Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-#    Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-#    Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff    
-#    Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff  
-#    Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-#    Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+    Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+    Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+    Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff    
+    Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff  
+    Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+    Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
 #    Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff
 )
 cffTags=(
     nominal
 #    noPrimKt
-#    ueup
-#    uedn
-#    fsrup
-#    fsrdown
-#    isrup
-#    isrdown
+    ueup
+    uedn
+    fsrup
+    fsrdown
+    isrup
+    isrdown
 #    hwpp
 )
 
@@ -42,7 +42,7 @@ case $WHAT in
 
 	mkdir -p ${outdir}	
 
-	for proc in Wminusk; do #Zj Wplusj Wminusj; do
+	for proc in Zj Wminusj; do #Wplusj 
 	    lheDir=/store/cmst3/user/psilva/Wmass/${proc}
 	    fcounter=1
 	    a=(`eos ls ${lheDir}`)
@@ -69,8 +69,7 @@ case $WHAT in
 
 	;;
     MERGE )
-	mkdir -p ${outdir}/Chunks
-	for baseProc in Zj Wplusj Wminusj; do
+	for baseProc in Zj Wminusj; do #Wplusj
 	    for k in "${!cffTags[@]}"; do 
 		proc="${baseProc}_${cffTags[$k]}";
 
@@ -89,13 +88,15 @@ case $WHAT in
 
 		yodamerge -o ${outdir}/${proc}.yoda ${yodaFiles}
 		hadd -f -k ${outdir}/${proc}.root ${rootFiles}
-		mv -t ${outdir}/Chunks ${yodaFiles}
-		mv -t ${outdir}/Chunks ${rootFiles}
+		#mv -t ${outdir}/Chunks ${yodaFiles}
+		#mv -t ${outdir}/Chunks ${rootFiles}
+		xrdcp ${outdir}/${proc}.root root://eoscms//eos/cms/store/cmst3/user/psilva/Wmass/ntuples/${proc}.root 
+		rm ${outdir}/${proc}.root
 	    done
 	done
 	;;
 
-    PLOT )
+    RIVETPLOT )
 	rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
 	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
 	    -o ~/public/html/Zj \
@@ -108,4 +109,17 @@ case $WHAT in
 	    ${outdir}/Zj_uedn.yoda:'UE dn' \
 	    ${outdir}/Zj_noPrimKt.yoda:'$k_{T}^{0}=0$'
 	;;
+    ANA )
+
+	NBINS=25
+	#python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Zj_nominal.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root     -c nl==2;
+	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wminusj_nominal.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_nominal.root -c nl==1 --templ Zj_nominal.root &
+	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wplusj_nominal.root  -i /store/cmst3/user/psilva/Wmass/ntuples/Wplusj_nominal.root  -c nl==1 --templ Zj_nominal.root &
+	for var in fsrup fsrdown isrup isrdown ueup uedn; do
+	    #python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Zj_${var}.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_${var}.root     -c nl==2 --templ Zj_nominal.root &
+	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Wminusj_${var}.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_${var}.root -c nl==1 --templ Zj_nominal.root &
+	done
+
+	;;
+
 esac
