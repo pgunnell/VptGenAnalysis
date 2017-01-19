@@ -5,7 +5,7 @@ WHAT=${1}
 outdir=/afs/cern.ch/user/p/psilva/work/Wmass/rivet/data
 script=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/scripts/wrapLocalAnalysisRun.sh;
 lhecfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENFromLHEandAnalysis_cfg.py
-py8cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/runGENandAnalysis_cfg.py
+py8cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
 
 cffTags=(
     nominal
