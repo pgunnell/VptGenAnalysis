@@ -4,18 +4,9 @@ WHAT=${1}
 
 outdir=/afs/cern.ch/user/p/psilva/work/Wmass/rivet/data
 script=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/scripts/wrapLocalAnalysisRun.sh;
-cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
-cffList=(
-    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-#    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff:primordialKToff
-    Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-    Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-    Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff    
-    Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff  
-    Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-    Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
-#    Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff
-)
+lhecfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENFromLHEandAnalysis_cfg.py
+py8cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/runGENandAnalysis_cfg.py
+
 cffTags=(
     nominal
 #    noPrimKt
@@ -32,9 +23,9 @@ export LSB_JOB_REPORT_MAIL=N
 
 case $WHAT in
     TEST )
-	cmsRun ${cfg} \
+	cmsRun ${py8cfg} \
 	    output=/tmp/test \
-	    hadronizer=TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8 \
+	    hadronizer=ZToMuMu_CUEP8M2T4 \
 	    seed=1 \
 	    maxEvents=1000
 	;;
@@ -42,29 +33,65 @@ case $WHAT in
 
 	mkdir -p ${outdir}	
 
-	for proc in Zj Wminusj; do #Wplusj 
-	    lheDir=/store/cmst3/user/psilva/Wmass/${proc}
-	    fcounter=1
-	    a=(`eos ls ${lheDir}`)
-	    for i in ${a[@]}; do
-		if [[ $i == *"cmsgrid"* ]]
-		then
-		    continue
-		fi
-		fcounter=$((fcounter+1))
-		for k in "${!cffList[@]}"; do 
+	#FROM LHE stored in EOS
+	#cffList=(
+	#    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+        #    Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff:primordialKToff
+	#    Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+	#    Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+	#    Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff    
+        #    Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff  
+	#    Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+	#    Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff
+        #    Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff
+	#)
+
+	#for proc in Zj Wminusj; do #Wplusj 
+	#    lheDir=/store/cmst3/user/psilva/Wmass/${proc}
+	#    fcounter=1
+	#    a=(`eos ls ${lheDir}`)
+	#    for i in ${a[@]}; do
+	#	if [[ $i == *"cmsgrid"* ]]
+	#	then
+	#	    continue
+	#	fi
+	#	fcounter=$((fcounter+1))
+	#	for k in "${!cffList[@]}"; do 
+	#	    cff=${cffList[$k]};
+	#	    tag=${cffTags[$k]};
+	#	    echo "${proc}_${tag}_${fcounter} ${cff}"
+	#	    bsub -q 8nh $script "cmsRun ${lhecfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} hadronizer=${cff} seed=${fcounter}";
+	#	done
+	#    done
+	#done
+
+	#FROM PY8 STANDALONE
+	cffList=(
+	    CUEP8M2T4
+	    #CUEP8M2T4:primordialKToff 
+	    CUEP8M2T4up
+	    CUEP8M2T4down
+	    CUEP8M2T4FSRup
+	    CUEP8M2T4FSRdown
+	    CUEP8M2T4ISRup
+	    CUEP8M2T4ISRdown
+	    #HW
+	)
+	for fcounter in `seq 1 400`; do
+	    for proc in ZToMuMu; do
+		for k in "${!cffTags[@]}"; do 
 		    cff=${cffList[$k]};
 		    tag=${cffTags[$k]};
 		    echo "${proc}_${tag}_${fcounter} ${cff}"
-		    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} hadronizer=${cff} seed=${fcounter}";
+		    bsub -q 8nh $script "cmsRun ${py8cfg} output=${outdir}/${proc}_${tag}_${fcounter} hadronizer=${proc}_${tag} seed=${fcounter} maxEvents=5000";
 		done
 	    done
 	done
 
+
 #	for i in `seq 1 200`; do
 #	    num=$((i + 10000))
-#	    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/z_py8_${fcounter} hadronizer=gmZ_TuneCUETP8M2T4_8TeV_pythia8 seed=${i} maxEvents=10000";
-#	    bsub -q 8nh $script "cmsRun ${cfg} output=${outdir}/dy2mumu_ct10_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe hadronizer=powhegEmissionVeto_1p_LHE_pythia8"
+#	    bsub -q 8nh $script "cmsRun ${lhecfg} output=${outdir}/dy2mumu_ct10_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe hadronizer=powhegEmissionVeto_1p_LHE_pythia8"
 #	done
 
 	;;
