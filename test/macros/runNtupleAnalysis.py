@@ -81,6 +81,7 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
         #chmet proxy + corresponding mt variations
         chmet=ROOT.TLorentzVector(0,0,0,0)
         chmet.SetPtEtaPhiM(data.imbalance_pt[2],data.imbalance_eta[2],data.imbalance_phi[2],0.)
+        if data.nl>=2 : chmet += lp4[1]
         varVals += [ chmet.Pt(), calcMt(p1=lp4[0],p2=chmet) ]
         
         if histos:
@@ -117,7 +118,7 @@ def fillHistos(opt) :
         for obj in fTempl.GetListOfKeys():
             keyName=obj.GetName()
             var,wgt,iniWgt = keyName.split('_')
-            if not var in ['v1','v2','v4','v5','v6','v7','v8','v9','v10','v12'] : continue
+            #if not var in ['v1','v2','v4','v5','v6','v7','v8','v9','v10','v12'] : continue
             key=(int(var.replace('v','')),int(wgt.replace('w','')),int(iniWgt.replace('p','')))
             allHistos[key]=fTempl.Get(keyName).Clone()
             allHistos[key].Reset('ICE')
@@ -184,7 +185,7 @@ def main():
     usage = 'usage: %prog [options]'
     parser = optparse.OptionParser(usage)
     parser.add_option('-i', '--in',     dest='input',   help='input file [%default]',       default='/store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root', type='string')
-    parser.add_option(      '--nbins',  dest='nbins',   help='n bins [%default]',           default=25,                                                       type=int)
+    parser.add_option(      '--nbins',  dest='nbins',   help='n bins [%default]',           default=100,                                                       type=int)
     parser.add_option('-o', '--out',    dest='output',  help='output file [%default]',      default='Zj_nominal.root',                                        type='string')
     parser.add_option('-c', '--cuts',   dest='cuts',    help='simple cuts to apply to the tree [%default]', default='nl==2',                                  type='string')
     parser.add_option('-w', '--wgt',    dest='wgtList', help='weight list (csv)[%default]', default='',                                                       type='string')

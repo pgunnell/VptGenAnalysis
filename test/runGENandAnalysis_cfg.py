@@ -31,6 +31,12 @@ options.register('hadronizer',
                  VarParsing.varType.string,
                  "hardcoded hadronizer snippet to use"
                  )
+options.register('pdfSet',
+		 'NNPDF30_lo_as_0130',
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.string,
+                 "PDF set to use"
+                 )
 options.parseArguments()
 
 process = cms.Process('GEN')
@@ -76,7 +82,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run1_mc', '')
 
 #generator definition
 from UserCode.RivetAnalysis.Pythia8HardProcs_cff import getGeneratorFor
-getGeneratorFor(hardProc=options.hadronizer,process=process)
+getGeneratorFor(hardProc=options.hadronizer,pdfSet=options.pdfSet,process=process)
 
 process.ProductionFilterSequence = cms.Sequence(process.generator)
 

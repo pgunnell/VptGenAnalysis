@@ -32,12 +32,19 @@ options.register('input',
                  VarParsing.varType.string,
                  "input file to process"
                  )
-options.register('hadronizer',
-		 'TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8',
+options.register('ueTune',
+		 'CUETP8M2T4',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
-                 "hardcoded hadronizer snippet to use"
+                 "hardcoded UE snippet to use"
                  )
+options.register('nFinal',
+		 2,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.int,
+                 "n particles in final state"
+                 )
+
 options.parseArguments()
 
 
@@ -63,12 +70,11 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source=cms.Source('EmptySource')
-if 'LHE' in options.hadronizer:
-	process.source = cms.Source("LHESource",
-				    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-				    fileNames = cms.untracked.vstring(options.input.split(',')),
-				    inputCommands = cms.untracked.vstring('keep *')
-				    )
+process.source = cms.Source("LHESource",
+			    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
+			    fileNames = cms.untracked.vstring(options.input.split(',')),
+			    inputCommands = cms.untracked.vstring('keep *')
+			    )
 
 process.options = cms.untracked.PSet(
 )
@@ -86,40 +92,8 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_v1', '')
 
 #generator definition
-if 'TuneCUETP8M1_8TeV_powhegEmissionVeto_1p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M1_8TeV_powhegEmissionVeto_1p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4up_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4down_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4ISRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4ISRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4FSRup_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneCUETP8M2T4FSRdown_8TeV_powhegEmissionVeto_2p_LHE_pythia8_cff import generator
-	process.generator=generator.clone()
-if 'TuneEE_5C_8TeV_Herwigpp' in options.hadronizer:
-	from UserCode.RivetAnalysis.Hadronizer_TuneEE_5C_8TeV_Herwigpp_cff import generator
-        process.generator=generator.clone()
-if 'gmZ_TuneCUETP8M2T4_8TeV_pythia8' in options.hadronizer:
-	from UserCode.RivetAnalysis.gmZ_TuneCUETP8M2T4_8TeV_pythia8_cff import generator
-	process.generator=generator.clone()
-
-#disable primordial kT
-if 'primordialKToff' in options.hadronizer:
-	process.generator.PythiaParameters.processParameters.append('BeamRemnants:primordialKT = off')
+from UserCode.RivetAnalysis.PowhegEmissioVeton_Pythia8_cff import getGeneratorFor
+getGeneratorFor(ueTune=options.ueTune,nFinal=options.nFinal,process=process)
 
 process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
 print 'Seed initiated to %d'%options.seed
