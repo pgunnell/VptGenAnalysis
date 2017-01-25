@@ -38,6 +38,12 @@ options.register('ueTune',
                  VarParsing.varType.string,
                  "hardcoded UE snippet to use"
                  )
+options.register('pdfSet',
+		 'NNPDF30_lo_as_0130',
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.string,
+                 "hardcoded UE snippet to use"
+                 )
 options.register('nFinal',
 		 2,
                  VarParsing.multiplicity.singleton,
@@ -93,7 +99,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_v1'
 
 #generator definition
 from UserCode.RivetAnalysis.PowhegEmissioVeton_Pythia8_cff import getGeneratorFor
-getGeneratorFor(ueTune=options.ueTune,nFinal=options.nFinal,process=process)
+getGeneratorFor(ueTune=options.ueTune,nFinal=options.nFinal,pdfSet=options.pdfSet,process=process)
 
 process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
 print 'Seed initiated to %d'%options.seed

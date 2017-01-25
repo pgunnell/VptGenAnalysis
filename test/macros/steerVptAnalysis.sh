@@ -2,7 +2,6 @@
 
 WHAT=${1}
 
-outdir=/afs/cern.ch/user/p/psilva/work/Wmass/rivet/data
 script=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/scripts/wrapLocalAnalysisRun.sh;
 lhecfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENFromLHEandAnalysis_cfg.py
 py8cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
@@ -17,31 +16,31 @@ cffTags=(
     fsrdown
     isrup
     isrdown    
-#    hwpp
 )
+
+tunesList=(
+    AZ
+    CUEP8M2T4
+    CUEP8M2T4:primordialKToff 
+    CUEP8M2T4up
+    CUEP8M2T4down
+    CUEP8M2T4FSRup
+    CUEP8M2T4FSRdown
+    CUEP8M2T4ISRup
+    CUEP8M2T4ISRdown
+)
+
+
 
 export LSB_JOB_REPORT_MAIL=N
 
 case $WHAT in
     TEST )
-	cmsRun ${py8cfg}  output=/tmp/test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
-	cmsRun ${lhecfg} output=/tmp/test ueTune=CUEP8M2T4 nFinal=2 seed=1 maxEvents=1000
+	#cmsRun ${py8cfg}  output=test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
+	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 nFinal=2 seed=1 maxEvents=1000
+	cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 nFinal=1 seed=1 maxEvents=1000 input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_10001.lhe
 	;;
-    NTUPLE )
-
-	mkdir -p ${outdir}	
-
-	tunesList=(
-	    AZ
-	    CUEP8M2T4
-	    CUEP8M2T4:primordialKToff 
-	    CUEP8M2T4up
-	    CUEP8M2T4down
-	    CUEP8M2T4FSRup
-	    CUEP8M2T4FSRdown
-	    CUEP8M2T4ISRup
-	    CUEP8M2T4ISRdown
-	)
+    NTUPLEVJ )
 
 	#FROM LHE stored in EOS
 	for proc in Zj Wminusj Wplusj; do
@@ -58,10 +57,12 @@ case $WHAT in
 		    cff=${tunesList[$k]};
 		    tag=${cffTags[$k]};
 		    echo "${proc}_${tag}_${fcounter} ${cff}"
-		    bsub -q 8nh $script "cmsRun ${lhecfg} output=${outdir}/${proc}_${tag}_${fcounter} input=${lheDir}/${i} ueTune=${cff} nFinal=2 seed=${fcounter}";
+		    bsub -q 8nh $script "cmsRun ${lhecfg} output=${proc}_${tag}_${fcounter} input=${lheDir}/${i} ueTune=${cff} nFinal=2 seed=${fcounter}";
 		done
 	    done
 	done
+	;;
+    NTUPLEPY8 )
 
 	#FROM PY8 STANDALONE
 	for fcounter in `seq 0 400`; do
@@ -70,47 +71,33 @@ case $WHAT in
 		    cff=${tunesList[$k]};
 		    tag=${cffTags[$k]};
 		    echo "${proc}_${tag}_${fcounter} ${cff}"
-		    bsub -q 8nh $script "cmsRun ${py8cfg} output=${outdir}/PY8${proc}_${tag}_${fcounter} hadronizer=${proc}_${cff} seed=${fcounter} maxEvents=50000";
+		    bsub -q 8nh $script "cmsRun ${py8cfg} output=PY8${proc}_${tag}_${fcounter} hadronizer=${proc}_${cff} seed=${fcounter} maxEvents=50000";
 		done
 
 		echo "${proc}_AZ CT10nlo_as_0118"
-		bsub -q 8nh $script "cmsRun ${py8cfg} output=${outdir}/PY8${proc}_azct10_${fcounter}      pdfSet=CT10nlo_as_0118 hadronizer=${proc}_AZ seed=${fcounter}        maxEvents=50000";
+		bsub -q 8nh $script "cmsRun ${py8cfg} output=PY8${proc}_azct10_${fcounter}      pdfSet=CT10nlo_as_0118 hadronizer=${proc}_AZ seed=${fcounter}        maxEvents=50000";
 		echo "${proc}_CUEP8M2T4 CT10nlo_as_0118"
-		bsub -q 8nh $script "cmsRun ${py8cfg} output=${outdir}/PY8${proc}_nominalct10_${fcounter} pdfSet=CT10nlo_as_0118 hadronizer=${proc}_CUEP8M2T4 seed=${fcounter} maxEvents=50000";
+		bsub -q 8nh $script "cmsRun ${py8cfg} output=PY8${proc}_nominalct10_${fcounter} pdfSet=CT10nlo_as_0118 hadronizer=${proc}_CUEP8M2T4 seed=${fcounter} maxEvents=50000";
 	    done
 	done
+	;;
+    NTUPLEPW )
 
-
-#	for i in `seq 1 200`; do
-#	    num=$((i + 10000))
-#	    bsub -q 8nh $script "cmsRun ${lhecfg} output=${outdir}/dy2mumu_ct10_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe hadronizer=powhegEmissionVeto_1p_LHE_pythia8"
-#	done
+	for i in `seq 1 200`; do
+	    for k in "${!cffTags[@]}"; do
+                cff=${tunesList[$k]};
+                tag=${cffTags[$k]};
+       
+		num=$((i + 10000))
+		bsub -q 2nw $script "cmsRun ${lhecfg} output=dy2mumu_ct10_${k}_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe pdfSet=CT10nlo_as_0118 ueTune=${cff} nFinal=1 seed=${i}"
+	    done
+	done
 
 	;;
     MERGE )
-	for baseProc in PY8WToMuNu PY8ZToMuMu; do #Zj Wminusj Wplusj
-	    for k in "${!cffTags[@]}"; do 
-		proc="${baseProc}_${cffTags[$k]}";
-
-		regex=".*${proc}_[0-9]*\.yoda$"
-		a=(`exec find ${outdir} -regex ${regex}`)
-		if [ ${#a[@]} -eq 0 ]; then
-		    continue
-		fi
-
-		yodaFiles=""
-		rootFiles=""
-		for i in ${a[@]}; do 
-		    yodaFiles="${yodaFiles} ${i}"
-		    rootFiles="${rootFiles} ${i/yoda/root}"
-		done
-
-		yodamerge -o ${outdir}/${proc}.yoda ${yodaFiles}
-		hadd -f -k ${outdir}/${proc}.root ${rootFiles}
-		xrdcp ${outdir}/${proc}.root root://eoscms//eos/cms/store/cmst3/user/psilva/Wmass/ntuples/${proc}.root 
-		rm ${outdir}/${proc}.root
-	    done
-	done
+	#/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse mount eos
+	python scripts/mergeOutputs.py eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks eos/cms/store/cmst3/user/psilva/Wmass/ntuples
+	#/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse umount eos
 	;;
 
     RIVETPLOT )
@@ -140,13 +127,18 @@ case $WHAT in
 	;;
     ANA )
 
+
 	NBINS=100
-	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Zj_nominal.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root       -c nl==2;
-	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wminusj_nominal.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_nominal.root -c nl==1 --templ Zj_nominal.root &
-	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wplusj_nominal.root  -i /store/cmst3/user/psilva/Wmass/ntuples/Wplusj_nominal.root  -c nl==1 --templ Zj_nominal.root &
-	for var in fsrup fsrdown isrup isrdown ueup uedn; do
-	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Zj_${var}.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_${var}.root     -c nl==2 --templ Zj_nominal.root &
-	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Wminusj_${var}.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_${var}.root -c nl==1 --templ Zj_nominal.root &
+	#python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Zj_nominal.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root       -c nl==2;
+	#for var in fsrup fsrdown isrup isrdown ueup uedn az noPrimKt; do
+	#    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Zj_${var}.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_${var}.root     -c nl==2 --templ Zj_nominal.root &
+	#done
+
+	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wminusj_nominal.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_nominal.root -c nl==1 --templ Zj_nominal.root --templMode 2 
+	python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wplusj_nominal.root  -i /store/cmst3/user/psilva/Wmass/ntuples/Wplusj_nominal.root  -c nl==1 --templ Wminusj_nominal.root
+	for var in fsrup fsrdown isrup isrdown ueup uedn az noPrimKt; do
+	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Wminusj_${var}.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_${var}.root -c nl==1 --templ Wminusj_nominal.root &
+	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Wplusj_${var}.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wplusj_${var}.root -c nl==1 --templ Wminusj_nominal.root &
 	done
 
 	;;

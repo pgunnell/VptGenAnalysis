@@ -71,19 +71,29 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
         vecbos=ROOT.TLorentzVector(0,0,0,0)
         vecbos.SetPtEtaPhiM(data.vecbos_pt,data.vecbos_eta,data.vecbos_phi,data.vecbos_m)
 
-        varVals=[vecbos.M(), vecbos.Pt(), vecbos.Rapidity(), vpt.M(), vpt.Pt(), vpt.Rapidity(), lp4[0].Pt(), lp4[1].Rapidity(), lp4[1].Pt(), lp4[1].Rapidity()]
+        varVals=[vecbos.M(), vecbos.Pt(), vecbos.Rapidity(), vpt.M(), vpt.Pt(), vpt.Rapidity(), lp4[0].Pt(), lp4[0].Rapidity(), lp4[1].Pt(), lp4[1].Rapidity()]
         
-        #met proxy + corresponding mt variations
+        #full event balance
         met=ROOT.TLorentzVector(0,0,0,0)
         met.SetPtEtaPhiM(data.imbalance_pt[1],data.imbalance_eta[1],data.imbalance_phi[1],0.)
+        varVals += [ met.Pt() ]
+
+        #true met + MT
+        truemet=ROOT.TLorentzVector(0,0,0,0)
+        truemet.SetPtEtaPhiM(data.imbalance_pt[0],data.imbalance_eta[0],data.imbalance_phi[0],0.)
+        if data.nl>=2 : truemet += lp4[1]
+        varVals += [ truemet.Pt(), calcMt(p1=lp4[0],p2=truemet) ]
+
+        #met + MT
+        met += truemet
         varVals += [ met.Pt(), calcMt(p1=lp4[0],p2=met) ]
 
-        #chmet proxy + corresponding mt variations
+        #chmet + MT
         chmet=ROOT.TLorentzVector(0,0,0,0)
         chmet.SetPtEtaPhiM(data.imbalance_pt[2],data.imbalance_eta[2],data.imbalance_phi[2],0.)
         if data.nl>=2 : chmet += lp4[1]
         varVals += [ chmet.Pt(), calcMt(p1=lp4[0],p2=chmet) ]
-        
+
         if histos:
             for iv in xrange(0,len(varVals)):
                 for iw in xrange(0,len(mewgts)):
@@ -118,7 +128,7 @@ def fillHistos(opt) :
         for obj in fTempl.GetListOfKeys():
             keyName=obj.GetName()
             var,wgt,iniWgt = keyName.split('_')
-            #if not var in ['v1','v2','v4','v5','v6','v7','v8','v9','v10','v12'] : continue
+            if opt.templMode==2 and not var in ['v1','v4','v10'] : continue
             key=(int(var.replace('v','')),int(wgt.replace('w','')),int(iniWgt.replace('p','')))
             allHistos[key]=fTempl.Get(keyName).Clone()
             allHistos[key].Reset('ICE')
@@ -191,6 +201,7 @@ def main():
     parser.add_option('-w', '--wgt',    dest='wgtList', help='weight list (csv)[%default]', default='',                                                       type='string')
     parser.add_option(      '--iniWgt', dest='iniWgt',  help='include initial state weights [%default]', default=False,                                       action='store_true')
     parser.add_option(      '--templ',  dest='templ',   help='histogram templates (keep binning) [%default]', default=None,                                   type='string')
+    parser.add_option(      '--templMode',  dest='templMode',   help='1=use all histos, 2=recycle only Vpt [%default]', default=1,                            type=int)
     (opt, args) = parser.parse_args()
 
     fillHistos(opt)

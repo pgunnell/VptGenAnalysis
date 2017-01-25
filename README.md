@@ -22,10 +22,11 @@ cmsRun test/runGENandAnalysis_cfg.py input=/store/lhe/5663/DYToMuMu_M-20_CT10_8T
 ```
 
 To help doing it systematically you can use also the shell script below. Customize it for your own purposes. The second command should be used once the outputs of all batch jobs are available.
+Update the storage area in EOS in `test/macros/steerVptAnalysis.sh` and `scripts/wrapLocalAnalysisRun.sh` and compile again.
 
 ```
-sh test/steerVptAnalysis.sh NTUPLE
-sh test/steerVptAnalysis.sh MERGE
+sh test/macros/steerVptAnalysis.sh NTUPLE
+sh test/macros/steerVptAnalysis.sh MERGE
 ```
 
 ## Plotting the RIVET output
