@@ -20,6 +20,18 @@ options.register('saveEDM',
                  VarParsing.varType.bool,
                  "save EDM output"
                  )
+options.register('photos',
+                 False,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.bool,
+                 "add Photos for QED"
+                 )
+options.register('doRivetScan',
+                 False,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.bool,
+                 "do rivet scan, no ntuple"
+                 )
 options.register('seed',
                  123456789,
                  VarParsing.multiplicity.singleton,
@@ -99,7 +111,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_v1'
 
 #generator definition
 from UserCode.RivetAnalysis.PowhegEmissioVeton_Pythia8_cff import getGeneratorFor
-getGeneratorFor(ueTune=options.ueTune,nFinal=options.nFinal,pdfSet=options.pdfSet,process=process)
+getGeneratorFor(ueTune=options.ueTune,nFinal=options.nFinal,pdfSet=options.pdfSet,process=process,addPhotos=options.photos)
 
 process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
 print 'Seed initiated to %d'%options.seed
@@ -117,7 +129,8 @@ process.load('UserCode.VptGenAnalysis.vptAnalysis_cff')
 
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)
-process.analysis_step = cms.Path(process.analysis)
+if not options.doRivetScan:
+	process.analysis_step = cms.Path(process.analysis)
 process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 if options.saveEDM:
@@ -136,9 +149,16 @@ if options.saveEDM:
 						)
 	
 	process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
-	process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
+	if options.doRivetScan:
+		process.schedule = cms.Schedule(process.generation_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
+	else:
+		process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
+
 else:
-	process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step)
+	if options.doRivetScan:
+		process.schedule = cms.Schedule(process.generation_step, process.genfiltersummary_step, process.endjob_step)
+	else:
+		process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step)
 
 
 # filter all path with the production filter sequence
@@ -147,8 +167,23 @@ for path in process.paths:
 
 #add RIVET routine
 from UserCode.RivetAnalysis.rivet_customise import *
-process = customiseZPt(process,0)
-process.rivetAnalyzer.OutputFile = cms.string(options.output + '.yoda')
-process.rivetAnalyzer.HepMCCollection = cms.InputTag('generatorSmeared')
+if options.doRivetScan:	
+	for i in xrange(0,12):
+		from GeneratorInterface.RivetInterface.rivetAnalyzer_cfi import rivetAnalyzer
+		setattr(process,
+			'rivetAnalyzer%d'%i,
+			rivetAnalyzer.clone( AnalysisNames = cms.vstring('ATLAS_2015_I1408516_MU'),
+					     UseExternalWeight = cms.bool(True),
+					     useLHEweights = cms.bool(True),
+					     LHEweightNumber = cms.int32(i),
+					     HepMCCollection = cms.InputTag('generatorSmeared'),
+					     OutputFile = cms.string( '%s.w%d.yoda'%(options.output,i)),
+					     )
+			)
+		process.generation_step+=getattr(process,'rivetAnalyzer%d'%i)
+else:
+	process = customiseZPt(process,0)
+	process.rivetAnalyzer.OutputFile = cms.string(options.output + '.yoda')
+	process.rivetAnalyzer.HepMCCollection = cms.InputTag('generatorSmeared')
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 5000

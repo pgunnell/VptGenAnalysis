@@ -64,6 +64,9 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
 
         nevtsSel+=1
 
+        #charge selection
+        if opt.charge!=0 and data.charge[0]!=opt.charge : continue
+
         #vector boson kinematics
         vpt = lp4[0]+lp4[1]
 
@@ -136,7 +139,7 @@ def fillHistos(opt) :
     except:
         pass
 
-    data=parseDataFromTree(opt,maxPerc=1,histos=None)
+    data=parseDataFromTree(opt,maxPerc=1.0,histos=None)
     print '[fillHistos] defining templates for %d variables and %d selected events'%(len(data[0][0]),len(data[0]))
 
     #compute quantiles for n bins
@@ -174,8 +177,12 @@ def fillHistos(opt) :
     #write histos to file
     fOut=ROOT.TFile.Open(opt.output,'RECREATE')
     for key in allHistos:         
+        totalWeights=sumw.GetBinContent(key[1]+1)
+        if totalWeights==0:
+            print 'Skipping',key,'sum weights=0'
+            continue
         for xbin in xrange(1,allHistos[key].GetNbinsX()+1):
-            binw=allHistos[key].GetXaxis().GetBinWidth(xbin)*sumw.GetBinContent(key[1]+1)
+            binw=allHistos[key].GetXaxis().GetBinWidth(xbin)*totalWeights
             allHistos[key].SetBinContent(xbin, allHistos[key].GetBinContent(xbin)/binw )
             allHistos[key].SetBinError  (xbin, allHistos[key].GetBinError(xbin)/binw )            
         allHistos[key].SetDirectory(fOut)
@@ -202,6 +209,7 @@ def main():
     parser.add_option(      '--iniWgt', dest='iniWgt',  help='include initial state weights [%default]', default=False,                                       action='store_true')
     parser.add_option(      '--templ',  dest='templ',   help='histogram templates (keep binning) [%default]', default=None,                                   type='string')
     parser.add_option(      '--templMode',  dest='templMode',   help='1=use all histos, 2=recycle only Vpt [%default]', default=1,                            type=int)
+    parser.add_option(      '--charge',    dest='charge', help='charge selector [%default]', default=0, type=int)
     (opt, args) = parser.parse_args()
 
     fillHistos(opt)

@@ -19,6 +19,12 @@ options.register('saveEDM',
                  VarParsing.varType.bool,
                  "save EDM output"
                  )
+options.register('photos',
+                 False,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.bool,
+                 "add Photos for QED"
+                 )
 options.register('seed',
                  123456789,
                  VarParsing.multiplicity.singleton,
@@ -82,7 +88,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run1_mc', '')
 
 #generator definition
 from UserCode.RivetAnalysis.Pythia8HardProcs_cff import getGeneratorFor
-getGeneratorFor(hardProc=options.hadronizer,pdfSet=options.pdfSet,process=process)
+getGeneratorFor(hardProc=options.hadronizer,pdfSet=options.pdfSet,process=process,addPhotos=options.photos)
 
 process.ProductionFilterSequence = cms.Sequence(process.generator)
 

@@ -15,10 +15,12 @@ def getBaseNames(dirname):
     names = set()
     for item in os.listdir(dirname):
         filename, ext = os.path.splitext(item)
+        filename, sec_ext= os.path.splitext(filename)
         if not ext == '.root': continue
         try:
-            fIn=ROOT.TFile.Open(dirname+'/'+item)
             goodFile=True
+            
+            #fIn=ROOT.TFile.Open(dirname+'/'+item)
             #goodFile = False
             #try:
             #    if fIn and not fIn.IsZombie() and not fIn.TestBit(ROOT.TFile.kRecovered):
@@ -26,6 +28,7 @@ def getBaseNames(dirname):
             #except:
             #    pass
             basename, number = filename.rsplit('_',1)
+            if len(sec_ext)!=0 : basename += '_'+ sec_ext.replace('.','')
             if (not goodFile):
                 badFiles.append(dirname+'/'+item)
                 continue
@@ -36,11 +39,11 @@ def getBaseNames(dirname):
             except KeyError:
                 counters[basename] = [dirname+'/'+item]
             names.add(basename)
-            print filename,basename
             
         except ValueError:
             print filename,'is single'
             names.add(filename)
+            
     return names
 
 try:
@@ -63,20 +66,23 @@ print 'Will process the following samples:', basenames
 for basename, files in counters.iteritems():
 
     filenames = " ".join(files)
-    target = os.path.join(outputdir,"%s.root" % basename)
-
+    
     # merging:
     print '... processing', basename
+    
+    target = os.path.join(outputdir,"%s.root" % basename)
     cmd = 'hadd -f %s %s' % (target, filenames)
     print cmd
     os.system(cmd)
     os.system('rm %s'%filenames)
 
-    yodatarget = target.replace('.root','.yoda')
+    yodatarget = os.path.join(outputdir,"%s.yoda" % basename)
+    #yodatarget = target.replace('.root','.yoda')
     yodafilenames = filenames.replace('.root','.yoda')
     cmd = 'yodamerge -o %s %s' % (yodatarget, yodafilenames)
     print cmd
     os.system(cmd)
+    os.system('rm %s'%yodafilenames)
 
 if (len(badFiles) > 0):
     print '-----------------------'
