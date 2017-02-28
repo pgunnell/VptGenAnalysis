@@ -88,11 +88,17 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source=cms.Source('EmptySource')
-process.source = cms.Source("LHESource",
-			    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-			    fileNames = cms.untracked.vstring(options.input.split(',')),
-			    inputCommands = cms.untracked.vstring('keep *')
-			    )
+if '.root' in options.input:
+	process.source = cms.Source("PoolSource",
+				    fileNames = cms.untracked.vstring(options.input.split(',')),
+				    inputCommands = cms.untracked.vstring('keep *')
+				    )
+else:
+	process.source = cms.Source("LHESource",
+				    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
+				    fileNames = cms.untracked.vstring(options.input.split(',')),
+				    inputCommands = cms.untracked.vstring('keep *')
+				    )
 
 process.options = cms.untracked.PSet(
 )
@@ -149,16 +155,10 @@ if options.saveEDM:
 						)
 	
 	process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
-	if options.doRivetScan:
-		process.schedule = cms.Schedule(process.generation_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
-	else:
-		process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
+	process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
 
 else:
-	if options.doRivetScan:
-		process.schedule = cms.Schedule(process.generation_step, process.genfiltersummary_step, process.endjob_step)
-	else:
-		process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step)
+	process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step)
 
 
 # filter all path with the production filter sequence
@@ -168,7 +168,7 @@ for path in process.paths:
 #add RIVET routine
 from UserCode.RivetAnalysis.rivet_customise import *
 if options.doRivetScan:	
-	for i in xrange(0,12):
+	for i in xrange(0,282):
 		from GeneratorInterface.RivetInterface.rivetAnalyzer_cfi import rivetAnalyzer
 		setattr(process,
 			'rivetAnalyzer%d'%i,

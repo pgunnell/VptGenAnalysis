@@ -45,6 +45,32 @@ case $WHAT in
 	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True nFinal=2 seed=1 maxEvents=1000 input=/store/group/phys_smp/Wmass/perrozzi/powheg/test_Zj_8TeV_ptsqmin4/cmsgrid_final.lhe.xz
 	;;
 
+    NTUPLEMCRUN2)
+	lhe=(
+	    /ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_hfact0p5/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin400/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+            #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin20/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_CT14/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	)
+	req=(
+	    central
+	    #hfact0p5
+	    #ptsqmin400
+	    #ptsqmin20
+	    #ptsqmin4
+	    #ct14
+	)
+	crabTempl=$CMSSW_BASE/src/UserCode/VptGenAnalysis/test/crab_VptAnalysis.py.templ
+	for k in ${!lhe[@]}; do
+	    i=${lhe[$k]};
+	    j=${req[$k]};
+	    sedstr="s%_REQUEST_%${j}%;s%_PSET_%${lhecfg}%;s%_DSET_%${i}%;"
+	    cat ${crabTempl} | sed "${sedstr}" > crab_${j}.py
+	    crab submit crab_${j}.py
+	done
+	;;
     NTUPLEVJscan )
 	lheDir=/store/group/phys_smp/Wmass/perrozzi/powheg/test_Zj_8TeV_ptsqmin4/
 	fcounter=1
@@ -205,9 +231,9 @@ case $WHAT in
 
 	NBINS=100
 	#python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Zj_nominal.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root       -c nl==2;
-	for var in ; do # fsrup fsrdown isrup isrdown ueup uedn az noPrimKt; do
-	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Zj_${var}.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_${var}.root     -c nl==2 --templ Zj_nominal.root &
-	done
+	#for var in ; do # fsrup fsrdown isrup isrdown ueup uedn az noPrimKt; do
+	    #python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o Zj_${var}.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_${var}.root     -c nl==2 --templ Zj_nominal.root &
+	#done
 	
 	#python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wminusj_nominal.root -i /store/cmst3/user/psilva/Wmass/ntuples/Wminusj_nominal.root -c nl==1 --templ Zj_nominal.root --templMode 2 
 	#python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Wplusj_nominal.root  -i /store/cmst3/user/psilva/Wmass/ntuples/Wplusj_nominal.root  -c nl==1 --templ Wminusj_nominal.root
@@ -219,9 +245,9 @@ case $WHAT in
 
 
 	for var in factup factdown renormup renormdown combup combdown; do #fsrup fsrdown isrup isrdown ueup uedn az noPrimKt azct10 nominal nominalct10; do
-	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o PY8ZToMuMu_${var}.root        -i /store/cmst3/user/psilva/Wmass/ntuples/PY8ZToMuMu_${var}.root  -c nl==2 --templ Zj_nominal.root  &
-	    #python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o PY8ZWminusToMuMu_${var}.root  -i /store/cmst3/user/psilva/Wmass/ntuples/PY8WToMuNu_${var}.root  -c nl==1 --templ Wminusj_nominal.root --charge -1& 
-	    #python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o PY8ZWplusToMuMu_${var}.root   -i /store/cmst3/user/psilva/Wmass/ntuples/PY8WToMuNu_${var}.root  -c nl==1 --templ Wminusj_nominal.root --charge 1& 
+	    #python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o PY8ZToMuMu_${var}.root        -i /store/cmst3/user/psilva/Wmass/ntuples/PY8ZToMuMu_${var}.root  -c nl==2 --templ Zj_nominal.root  &
+	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o PY8ZWminusToMuMu_${var}.root  -i /store/cmst3/user/psilva/Wmass/ntuples/PY8WToMuNu_${var}.root  -c nl==1 --templ Wminusj_nominal.root --charge -1& 
+	    python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -w 0 -o PY8ZWplusToMuMu_${var}.root   -i /store/cmst3/user/psilva/Wmass/ntuples/PY8WToMuNu_${var}.root  -c nl==1 --templ Wminusj_nominal.root --charge 1& 
 	done
 
 	;;
