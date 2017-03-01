@@ -11,12 +11,12 @@ def isint(string):
     except ValueError:
         return False
 
-def getBaseNames(dirname):
+def getBaseNames(dirname,reqExt):
     names = set()
     for item in os.listdir(dirname):
         filename, ext = os.path.splitext(item)
         filename, sec_ext= os.path.splitext(filename)
-        if not ext == '.root': continue
+        if not ext == reqExt: continue
         try:
             goodFile=True
             
@@ -28,7 +28,9 @@ def getBaseNames(dirname):
             #except:
             #    pass
             basename, number = filename.rsplit('_',1)
-            if len(sec_ext)!=0 : basename += '_'+ sec_ext.replace('.','')
+            if len(sec_ext)!=0:
+                pf,number=sec_ext.rsplit('_',1)
+                basename=filename+pf
             if (not goodFile):
                 badFiles.append(dirname+'/'+item)
                 continue
@@ -59,30 +61,36 @@ except IndexError:
     print "Need to provide an input and output directories."
     exit(-1)
 
-basenames = getBaseNames(inputdir)
-print '-----------------------'
-print 'Will process the following samples:', basenames
+for ext in ['.root','.yoda']:
 
-for basename, files in counters.iteritems():
+    basenames = getBaseNames(inputdir,ext)
+    print '-----------------------'
+    print 'Will process the following samples:', basenames
 
-    filenames = " ".join(files)
+    for basename, files in counters.iteritems():
+
+        filenames = " ".join(files)
     
-    # merging:
-    print '... processing', basename
+        # merging:
+        print '... processing', basename
     
-    target = os.path.join(outputdir,"%s.root" % basename)
-    cmd = 'hadd -f %s %s' % (target, filenames)
-    print cmd
-    os.system(cmd)
-    os.system('rm %s'%filenames)
+        if ext=='.root':
+            target = os.path.join(outputdir,"%s.root" % basename)
+            cmd = 'hadd -f %s %s' % (target, filenames)
+            #print cmd
+            os.system(cmd)
+            os.system('rm %s'%filenames)
 
-    yodatarget = os.path.join(outputdir,"%s.yoda" % basename)
-    #yodatarget = target.replace('.root','.yoda')
-    yodafilenames = filenames.replace('.root','.yoda')
-    cmd = 'yodamerge -o %s %s' % (yodatarget, yodafilenames)
-    print cmd
-    os.system(cmd)
-    os.system('rm %s'%yodafilenames)
+        else:
+            target = os.path.join(outputdir,"%s.yoda" % basename)
+            if len(files)==1:
+                cmd='mv -v %s %s'%(files[0],target)
+                os.system(cmd)
+            else:                
+                cmd = 'yodamerge -o %s %s' % (target, filenames)
+                #print cmd
+                os.system(cmd)
+                #os.system('rm %s'%yodafilenames)
 
 if (len(badFiles) > 0):
     print '-----------------------'
