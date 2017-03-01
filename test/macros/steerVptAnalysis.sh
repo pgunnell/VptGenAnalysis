@@ -40,7 +40,8 @@ export LSB_JOB_REPORT_MAIL=N
 case $WHAT in
     TEST )
 	#cmsRun ${py8cfg}  output=test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
-	cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True doRivetScan=True nFinal=2 seed=1 maxEvents=1000
+	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True doRivetScan=True nFinal=2 seed=1 maxEvents=1000
+	cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True doRivetScan=True nFinal=2 seed=1 usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin20/LHE/MCRUN2_71_V1-v1/130000/386F231B-17F7-E611-A43D-02163E014D09.root
 	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 nFinal=1 seed=1 maxEvents=1000 input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_10001.lhe
 	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True nFinal=2 seed=1 maxEvents=1000 input=/store/group/phys_smp/Wmass/perrozzi/powheg/test_Zj_8TeV_ptsqmin4/cmsgrid_final.lhe.xz
 	;;
@@ -48,19 +49,19 @@ case $WHAT in
     NTUPLEMCRUN2)
 	lhe=(
 	    /ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
-	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_hfact0p5/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
-	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin400/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
-            #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin20/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
-	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
-	    #/ZJ_ZToMuMu_powheg_minlo_8TeV_CT14/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    /ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_hfact0p5/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    /ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin400/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+            /ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin20/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    /ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
+	    /ZJ_ZToMuMu_powheg_minlo_8TeV_CT14/RunIIWinter15wmLHE-MCRUN2_71_V1-v1/LHE
 	)
 	req=(
-	    central
-	    #hfact0p5
-	    #ptsqmin400
-	    #ptsqmin20
-	    #ptsqmin4
-	    #ct14
+	    ZJ_central
+	    ZJ_hfact0p5
+	    ZJ_ptsqmin400
+	    ZJ_ptsqmin20
+	    ZJ_ptsqmin4
+	    ZJ_ct14
 	)
 	crabTempl=$CMSSW_BASE/src/UserCode/VptGenAnalysis/test/crab_VptAnalysis.py.templ
 	for k in ${!lhe[@]}; do

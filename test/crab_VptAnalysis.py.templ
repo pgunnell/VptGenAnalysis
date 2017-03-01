@@ -11,17 +11,25 @@ config.General.transferOutputs=True
 config.section_("JobType")
 config.JobType.pluginName = "Analysis"
 config.JobType.psetName = "_PSET_"
-config.JobType.disableAutomaticOutputCollection = False
-config.JobType.pyCfgParams = ['output=_REQUEST_','ueTune=CUEP8M2T4','photos=True','nFinal=2']
-
+config.JobType.disableAutomaticOutputCollection = True
+config.JobType.outputFiles = ['%s.root'%config.General.requestName] 
+config.JobType.outputFiles += ['%s.w%d.yoda'%(config.General.requestName,x) for x in xrange(0,282)]
+config.JobType.pyCfgParams = [
+			   'output=%s'%config.General.requestName,
+			   'ueTune=CUEP8M2T4',
+			   'photos=True',
+			   'nFinal=2',
+			   'doRivetScan=True',
+			   'usePoolSource=True'
+			   ]
 config.section_("Data")
 config.Data.inputDataset = "_DSET_"
 config.Data.inputDBS = "global"
-config.Data.splitting = "FileBased"
-config.Data.unitsPerJob = 50
+config.Data.splitting = "EventAwareLumiBased"
+config.Data.unitsPerJob = 500000
 config.Data.publication = False
-config.Data.ignoreLocality = True
-config.Data.outLFNDirBase = '/store/group/phys_top/psilva/Wmass/_REQUEST_'
+config.Data.ignoreLocality = False
+config.Data.outLFNDirBase = '/store/group/phys_top/psilva/Wmass/%s'%config.General.requestName
 
 config.section_("Site")
 config.Site.storageSite = "T2_CH_CERN"

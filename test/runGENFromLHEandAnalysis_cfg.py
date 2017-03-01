@@ -14,6 +14,12 @@ options.register('output',
                  VarParsing.varType.string,
                  "Output file name"
                  )
+options.register('usePoolSource',
+                 False,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.bool,
+                 "use LHE from EDM format"
+                 )
 options.register('saveEDM',
                  False,
                  VarParsing.multiplicity.singleton,
@@ -88,7 +94,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source=cms.Source('EmptySource')
-if '.root' in options.input:
+if options.usePoolSource:
 	process.source = cms.Source("PoolSource",
 				    fileNames = cms.untracked.vstring(options.input.split(',')),
 				    inputCommands = cms.untracked.vstring('keep *')
@@ -135,8 +141,7 @@ process.load('UserCode.VptGenAnalysis.vptAnalysis_cff')
 
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)
-if not options.doRivetScan:
-	process.analysis_step = cms.Path(process.analysis)
+process.analysis_step = cms.Path(process.analysis)
 process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 if options.saveEDM:
@@ -170,12 +175,14 @@ from UserCode.RivetAnalysis.rivet_customise import *
 if options.doRivetScan:	
 	for i in xrange(0,282):
 		from GeneratorInterface.RivetInterface.rivetAnalyzer_cfi import rivetAnalyzer
+		LHECollection = cms.InputTag('externalLHEProducer') if options.usePoolSource else cms.InputTag('source')
 		setattr(process,
 			'rivetAnalyzer%d'%i,
 			rivetAnalyzer.clone( AnalysisNames = cms.vstring('ATLAS_2015_I1408516_MU'),
 					     UseExternalWeight = cms.bool(True),
 					     useLHEweights = cms.bool(True),
 					     LHEweightNumber = cms.int32(i),
+					     LHECollection = LHECollection,
 					     HepMCCollection = cms.InputTag('generatorSmeared'),
 					     OutputFile = cms.string( '%s.w%d.yoda'%(options.output,i)),
 					     )
