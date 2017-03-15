@@ -59,7 +59,7 @@ case $WHAT in
 
 	pT0RefScan=(1.0   2.0   2.0   10.0 10.0)
 	pTminScan=(0.5 0.5 1.0 0.5 5.0)
-	for w in 0 24; do
+	for w in 0 24 48; do
 	    for p in "${!pT0RefScan[@]}"; do
 		pT0Ref=${pT0RefScan[$p]};
 		pTmin=${pTminScan[$p]}; 
@@ -76,8 +76,8 @@ case $WHAT in
 			    input=${baseeos}/${i}/${k};
 
 			    cmd="cmsRun ${lhecfg} output=${tag}_Scan${p}_${num} ueTune=CUEP8M2T4:SpaceShower:pT0Ref=${pT0Ref}:SpaceShower:pTmin=${pTmin} photos=True doRivetScan=False meWeight=${w} nFinal=2 seed=${num} usePoolSource=True input=${input}"
-			    echo ${cmd}
-			    #bsub -q 2nw $script "${cmd}";
+			    #echo ${cmd}
+			    bsub -q 2nw $script "${cmd}";
 			done
 		    done
 		done
