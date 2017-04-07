@@ -28,12 +28,17 @@ def getBaseNames(dirname,reqExt):
             #except:
             #    pass
             basename, number = filename.rsplit('_',1)            
+            if not number == 'missing' and not isint(number):
+                if 'w' in number: 
+                    number,sec_ext=number.split('w')
+                    sec_ext ='w%s'%sec_ext
+                if not isint(number):
+                    raise ValueError
             if len(sec_ext)!=0: basename=basename+sec_ext
             if (not goodFile):
                 badFiles.append(dirname+'/'+item)
                 continue
-            if not number == 'missing' and not isint(number):
-                raise ValueError
+
             try:
                 counters[basename].append(dirname+'/'+item)
             except KeyError:

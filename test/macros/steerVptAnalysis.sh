@@ -84,8 +84,22 @@ case $WHAT in
 	    done
 	done
 	;;
-
-
+    RIVETTUNE)
+	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass
+	for p in central ptsqmin4; do
+	    for w in 0 24 48; do
+		rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+		    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+		    -o ~/public/html/Zj_spaceshower_${p}_${w} \
+		    ${yodaDir}/ntuples/ZJ_${p}.w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(2,0.2)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan0w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(1,0.5)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan1w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(2,0.5)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan2w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(2,1)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan3w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(10,0.5)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan4w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(10,5)$';
+	    done
+	done
+	;;
 
     NTUPLEMCRUN2)
 	lhe=(
@@ -248,7 +262,7 @@ case $WHAT in
 	;;
     MERGE )
 	/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse mount eos
-	python scripts/mergeOutputs.py eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks eos/cms/store/cmst3/user/psilva/Wmass/ntuples
+	python scripts/mergeOutputs.py eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks eos/cms/store/cmst3/user/psilva/Wmass/ntuples/TuneScan
 	/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse umount eos
 	;;
 
