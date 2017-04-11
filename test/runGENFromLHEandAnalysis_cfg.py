@@ -38,6 +38,12 @@ options.register('doRivetScan',
                  VarParsing.varType.bool,
                  "do rivet scan, no ntuple"
                  )
+options.register('meWeight',
+                 0,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.int,
+                 "ME weight to apply in RIVET"
+                 )
 options.register('seed',
                  123456789,
                  VarParsing.multiplicity.singleton,
@@ -189,8 +195,8 @@ if options.doRivetScan:
 			)
 		process.generation_step+=getattr(process,'rivetAnalyzer%d'%i)
 else:
-	process = customiseZPt(process,0)
-	process.rivetAnalyzer.OutputFile = cms.string(options.output + '.yoda')
+	process = customiseZPt(process,options.meWeight)
+	process.rivetAnalyzer.OutputFile = cms.string(options.output + 'w%d.yoda'%options.meWeight)
 	process.rivetAnalyzer.HepMCCollection = cms.InputTag('generatorSmeared')
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 5000

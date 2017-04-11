@@ -41,9 +41,64 @@ case $WHAT in
     TEST )
 	#cmsRun ${py8cfg}  output=test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
 	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True doRivetScan=True nFinal=2 seed=1 maxEvents=1000
-	cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True doRivetScan=True nFinal=2 seed=1 usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin20/LHE/MCRUN2_71_V1-v1/130000/386F231B-17F7-E611-A43D-02163E014D09.root
+	cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4:SpaceShower:pT0Ref=1.5:SpaceShower:pTmin=0.4 photos=True doRivetScan=False meWeight=120 nFinal=2 seed=1 usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1/120000/FEB8D25D-D0F5-E611-A0E5-0CC47A1DF806.root
 	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 nFinal=1 seed=1 maxEvents=1000 input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_10001.lhe
 	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True nFinal=2 seed=1 maxEvents=1000 input=/store/group/phys_smp/Wmass/perrozzi/powheg/test_Zj_8TeV_ptsqmin4/cmsgrid_final.lhe.xz
+	;;
+
+    NTUPLETUNE)
+
+	baseeosDirs=(
+	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
+	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1
+	)
+	baseTags=(
+	    ZJ_central
+	    ZJ_ptsqmin4
+	)
+
+	pT0RefScan=(1.0   2.0   2.0   10.0 10.0)
+	pTminScan=(0.5 0.5 1.0 0.5 5.0)
+	for w in 0 24 48; do
+	    for p in "${!pT0RefScan[@]}"; do
+		pT0Ref=${pT0RefScan[$p]};
+		pTmin=${pTminScan[$p]}; 
+	    
+		for b in "${!baseeosDirs[@]}"; do 
+		    baseeos=${baseeosDirs[$b]};
+		    tag=${baseTags[$b]};
+		    num=0;
+		    subdirs=(`eos ls ${baseeos}`);
+		    for i in ${subdirs[@]}; do
+			a=(`eos ls ${baseeos}/${i}`)
+			for k in ${a[@]}; do		    
+			    num=$((num + 1));
+			    input=${baseeos}/${i}/${k};
+
+			    cmd="cmsRun ${lhecfg} output=${tag}_Scan${p}_${num} ueTune=CUEP8M2T4:SpaceShower:pT0Ref=${pT0Ref}:SpaceShower:pTmin=${pTmin} photos=True doRivetScan=False meWeight=${w} nFinal=2 seed=${num} usePoolSource=True input=${input}"
+			    #echo ${cmd}
+			    bsub -q 2nw $script "${cmd}";
+			done
+		    done
+		done
+	    done
+	done
+	;;
+    RIVETTUNE)
+	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass
+	for p in central ptsqmin4; do
+	    for w in 0 24 48; do
+		rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+		    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+		    -o ~/public/html/Zj_spaceshower_${p}_${w} \
+		    ${yodaDir}/ntuples/ZJ_${p}.w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(2,0.2)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan0w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(1,0.5)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan1w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(2,0.5)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan2w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(2,1)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan3w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(10,0.5)$' \
+		    ${yodaDir}/ntuples/TuneScan/ZJ_${p}_Scan4w${w}.yoda:'$(p_T^{0ref},p_T^{\min})=(10,5)$';
+	    done
+	done
 	;;
 
     NTUPLEMCRUN2)
@@ -161,6 +216,37 @@ case $WHAT in
 	    done
 	done
 	;;
+    NTUPLEMCRUN2LOCAL)
+
+	baseeosDirs=(
+	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
+	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_hfact0p5/LHE/MCRUN2_71_V1-v1
+	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1
+	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin400/LHE/MCRUN2_71_V1-v1
+	)
+	baseTags=(
+	    ZJ_central
+	    ZJ_hfact0p5
+	    ZJ_ptsqmin4
+	    ZJ_ptsqmin400
+	)
+	    
+	for b in "${!baseeosDirs[@]}"; do 
+	    baseeos=${baseeosDirs[$b]};
+	    tag=${baseTags[$b]};
+	    num=0;
+	    subdirs=(`eos ls ${baseeos}`);
+	    for i in ${subdirs[@]}; do
+		a=(`eos ls ${baseeos}/${i}`)
+		for k in ${a[@]}; do		    
+		    num=$((num + 1));
+		    input=${baseeos}/${i}/${k};		    
+		    bsub -q 2nw $script "cmsRun ${lhecfg} output=${tag}_${num} input=${input} ueTune=CUEP8M2T4 photos=True nFinal=2 doRivetScan=True usePoolSource=True"; 
+		done
+	    done
+	done
+
+	;;
     NTUPLEPW )
 
 	for i in `seq 1 200`; do
@@ -176,8 +262,79 @@ case $WHAT in
 	;;
     MERGE )
 	/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse mount eos
-	python scripts/mergeOutputs.py eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks eos/cms/store/cmst3/user/psilva/Wmass/ntuples
+	python scripts/mergeOutputs.py eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks eos/cms/store/cmst3/user/psilva/Wmass/ntuples/TuneScan
 	/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse umount eos
+	;;
+
+    RIVETPLOTMCRUN2)
+
+	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass
+	
+	#convert yodas to root 
+	mkdir plots
+	cd plots
+	yoda2root.py ../../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda
+	baseTags=(
+            ZJ_central
+            ZJ_hfact0p5
+            ZJ_ptsqmin4
+            ZJ_ptsqmin400
+        )
+	for i in ${baseTags[@]}; do
+	    for w in `seq 0 120`; do
+		continue
+		yoda2root.py ../${yodaDir}/ntuples/${i}.w${w}.yoda
+	    done
+	done
+	cd -
+
+	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+        #    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/Zj_check \
+        #    ${yodaDir}/ntuples/Zj_nominalphotos.yoda:'PW(Minlo)+PY8 (NNPDF3.0) - private' \
+        #    ${yodaDir}/ntuples/ZJ_central.w1.yoda:'PW(Minlo)+PY8 (NNPDF3.0) - central';
+
+	rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+            -o ~/public/html/Zj_check \
+	    ${yodaDir}/ntuples/ZJ_central.w59.yoda:'$(\mu_{R},\mu_{F})=(8,4)$' \
+	    ${yodaDir}/ntuples/ZJ_ptsqmin4.w47.yoda:'$ptsqmin=4, (\mu_{R},\mu_{F})=(4,3)$' \
+	    ${yodaDir}/ntuples/ZJ_ptsqmin4.w60.yoda:'$ptsqmin=4, (\mu_{R},\mu_{F})=(8,8)$' 
+            #${yodaDir}/ntuples/ZJ_central.w1.yoda:'PW(Minlo)+PY8 (NNPDF3.0)' \
+            #${yodaDir}/ntuples/ZJ_central.w60.yoda:'$(\mu_{R},\mu_{F})=(8,8)$' \
+            #${yodaDir}/ntuples/ZJ_central.w57.yoda:'$(\mu_{R},\mu_{F})=(8,2)$';
+
+
+	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+        #    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/Zj_ptsqmin \
+        #    ${yodaDir}/ntuples/ZJ_central.w1.yoda:'PW(Minlo)+PY8 (NNPDF3.0)' \
+        #    ${yodaDir}/ntuples/ZJ_ptsqmin4.w1.yoda:'ptsqmin$=4$' \
+        #    ${yodaDir}/ntuples/ZJ_ptsqmin400.w1.yoda:'ptsqmin$=400$';
+	#
+	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+        #    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/Zj \
+        #    ${yodaDir}/ntuples/ZJ_central.w1.yoda:'PW(Minlo)+PY8 (NNPDF3.0)' \
+        #    ${yodaDir}/ntuples/ZJ_hfact0p5.w1.yoda:'hfact=$M_{Z}/2$';
+	#
+	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+	#    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/Z_muf \
+        #    ${yodaDir}/ntuples/ZJ_central.w7.yoda:'$(\mu_{R},\mu_{F})=(1,1/4)$' \
+        #    ${yodaDir}/ntuples/ZJ_central.w9.yoda:'(1,1/2)' \
+        #    ${yodaDir}/ntuples/ZJ_central.w0.yoda:'(1,1)' \
+        #    ${yodaDir}/ntuples/ZJ_central.w2.yoda:'(1,2)' \
+        #    ${yodaDir}/ntuples/ZJ_central.w4.yoda:'(1,4)';
+	
+	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+        #    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/Z_mur \
+        #    ${yodaDir}/ntuples/ZJ_central.w99.yoda:'$(\mu_{R},\mu_{F})=(1/2,1)$' \
+        #    ${yodaDir}/ntuples/ZJ_central.w0.yoda:'(1,1)' \
+        #    ${yodaDir}/ntuples/ZJ_central.w22.yoda:'(2,1)' \
+        #    ${yodaDir}/ntuples/ZJ_central.w44.yoda:'(4,1)';
+
 	;;
 
     RIVETPLOT )
