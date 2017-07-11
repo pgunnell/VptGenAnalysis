@@ -41,7 +41,7 @@ options.register('input',
 options.parseArguments()
 
 
-process = cms.Process('GEN')
+process = cms.Process('ANA')
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -84,12 +84,7 @@ process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_v1', '')
 
-
-process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
-print 'Seed initiated to %d'%options.seed
-process.ProductionFilterSequence = cms.Sequence(process.generator)
-
-#tfile service                                                                                                                                                                
+#tfile service                                                                                                                                                 
 process.TFileService = cms.Service("TFileService",
 				   fileName = cms.string(options.output+'.root')
 				   )
@@ -117,7 +112,7 @@ if options.doRivetScan:
 					     useLHEweights = cms.bool(True),
 					     LHEweightNumber = cms.int32(i),
 					     LHECollection = LHECollection,
-					     HepMCCollection = cms.InputTag('generatorSmeared'),
+					     HepMCCollection = cms.InputTag('generator'),
 					     OutputFile = cms.string( '%s.w%d.yoda'%(options.output,i)),
 					     )
 			)
@@ -125,6 +120,6 @@ if options.doRivetScan:
 else:
 	process = customiseZPt(process,options.meWeight)
 	process.rivetAnalyzer.OutputFile = cms.string(options.output + 'w%d.yoda'%options.meWeight)
-	process.rivetAnalyzer.HepMCCollection = cms.InputTag('generatorSmeared')
+	process.rivetAnalyzer.HepMCCollection = cms.InputTag('generator')
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 5000
