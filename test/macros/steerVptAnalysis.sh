@@ -4,46 +4,19 @@ WHAT=${1}
 RIVETSCAN=${2}
 
 script=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/scripts/wrapLocalAnalysisRun.sh;
-lhecfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENFromLHEandAnalysis_cfg.py
-py8cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
-
-cffTags=(
-    #az
-    #nominal
-    #noPrimKt
-    #ueup
-    #uedn
-    #fsrup
-    #fsrdown
-    #isrup
-    #isrdown    
-    nominalphotos
-)
-
-tunesList=(
-#    AZ
-#    CUEP8M2T4
-#    CUEP8M2T4:primordialKToff 
-#    CUEP8M2T4up
-#    CUEP8M2T4down
-#    CUEP8M2T4FSRup
-#    CUEP8M2T4FSRdown
-#    CUEP8M2T4ISRup
-#    CUEP8M2T4ISRdown
-    CUEP8M2T4:Photos
-)
-
-
+cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runVptAnalysis_cfg.py
+#py8cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runGENandAnalysis_cfg.py
 
 export LSB_JOB_REPORT_MAIL=N
 
 case $WHAT in
     TEST )
+	cmsRun ${cfg} output=test saveEDM=False \
+            usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1/120000/FEB8D25D-D0F5-E611-A0E5-0CC47A1DF806.root \
+            seed=1 nFinal=2 \
+            genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,SpaceShower:pTmin=0.894,MultiPartonInteractions:pT0Ref=2.5" \
+            meWeightsForRivet=0
 	#cmsRun ${py8cfg}  output=test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
-	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True doRivetScan=True nFinal=2 seed=1 maxEvents=1000
-	cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4:SpaceShower:pT0Ref=1.5:SpaceShower:pTmin=0.4 photos=True doRivetScan=False meWeight=120 nFinal=2 seed=1 usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1/120000/FEB8D25D-D0F5-E611-A0E5-0CC47A1DF806.root
-	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 nFinal=1 seed=1 maxEvents=1000 input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_10001.lhe
-	#cmsRun ${lhecfg} output=test ueTune=CUEP8M2T4 photos=True nFinal=2 seed=1 maxEvents=1000 input=/store/group/phys_smp/Wmass/perrozzi/powheg/test_Zj_8TeV_ptsqmin4/cmsgrid_final.lhe.xz
 	;;
 
     NTUPLETUNE)
