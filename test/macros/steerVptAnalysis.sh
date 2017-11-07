@@ -19,43 +19,24 @@ case $WHAT in
 	#cmsRun ${py8cfg}  output=test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
 	;;
 
-    NTUPLETUNE)
+    NTUPLE)
 
-	baseeosDirs=(
-	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
-	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1
-	)
-	baseTags=(
-	    ZJ_central
-	    ZJ_ptsqmin4
-	)
-
-	pT0RefScan=(1.0   2.0   2.0   10.0 10.0)
-	pTminScan=(0.5 0.5 1.0 0.5 5.0)
-	for w in 0 24 48; do
-	    for p in "${!pT0RefScan[@]}"; do
-		pT0Ref=${pT0RefScan[$p]};
-		pTmin=${pTminScan[$p]}; 
-	    
-		for b in "${!baseeosDirs[@]}"; do 
-		    baseeos=${baseeosDirs[$b]};
-		    tag=${baseTags[$b]};
-		    num=0;
-		    subdirs=(`eos ls ${baseeos}`);
-		    for i in ${subdirs[@]}; do
-			a=(`eos ls ${baseeos}/${i}`)
-			for k in ${a[@]}; do		    
-			    num=$((num + 1));
-			    input=${baseeos}/${i}/${k};
-
-			    cmd="cmsRun ${lhecfg} output=${tag}_Scan${p}_${num} ueTune=CUEP8M2T4:SpaceShower:pT0Ref=${pT0Ref}:SpaceShower:pTmin=${pTmin} photos=True doRivetScan=False meWeight=${w} nFinal=2 seed=${num} usePoolSource=True input=${input}"
-			    #echo ${cmd}
-			    bsub -q 2nw $script "${cmd}";
-			done
-		    done
-		done
+	baseeos=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
+        tag=ZJ_central
+	subdirs=(`eos ls ${baseeos}`);
+	for i in ${subdirs[@]}; do
+	    a=(`eos ls ${baseeos}/${i}`)
+	    for k in ${a[@]}; do		    
+		num=$((num + 1));
+		input=${baseeos}/${i}/${k};
+                
+                genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,SpaceShower:pTmin=0.894,MultiPartonInteractions:pT0Ref=2.5"
+		cmsRun ${cfg} output=${tag}_${num} saveEDM=False usePoolSource=True input=${input} seed=${num} nFinal=2 genParams=${genParams}
+                #echo ${cmd}
+		#bsub -q 2nw $script "${cmd}";
 	    done
 	done
+	
 	;;
     RIVETTUNE)
 	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass

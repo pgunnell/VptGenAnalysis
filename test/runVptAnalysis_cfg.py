@@ -117,18 +117,18 @@ for path in process.paths:
 from GeneratorInterface.RivetInterface.rivetAnalyzer_cfi import rivetAnalyzer
 if len(options.meWeightsForRivet) :
         print 'Enabling RIVET plugins for the following weights',options.meWeightsForRivet
-for x in options.meWeightsForRivet.split(','):
-        LHECollection = cms.InputTag('externalLHEProducer') if options.usePoolSource else cms.InputTag('source')
-        setattr(process, 'rivetAnalyzer'+x,
-                rivetAnalyzer.clone( AnalysisNames = cms.vstring('ATLAS_2015_I1408516_MU'),
-                                     UseExternalWeight = cms.bool(True),
-                                     useLHEweights = cms.bool(True),
-                                     LHEweightNumber = cms.int32(int(x)),
-                                     LHECollection = LHECollection,
-                                     HepMCCollection = cms.InputTag('generatorSmeared'),
-                                     OutputFile = cms.string( '%s.w%s.yoda'%(options.output,x)),
-                                     )
-                )
-        process.generation_step+=getattr(process,'rivetAnalyzer'+x)
+        for x in options.meWeightsForRivet.split(','):
+                LHECollection = cms.InputTag('externalLHEProducer') if options.usePoolSource else cms.InputTag('source')
+                setattr(process, 'rivetAnalyzer'+x,
+                        rivetAnalyzer.clone( AnalysisNames = cms.vstring('ATLAS_2015_I1408516_MU'),
+                                             UseExternalWeight = cms.bool(True),
+                                             useLHEweights = cms.bool(True),
+                                             LHEweightNumber = cms.int32(int(x)),
+                                             LHECollection = LHECollection,
+                                             HepMCCollection = cms.InputTag('generatorSmeared'),
+                                             OutputFile = cms.string( '%s.w%s.yoda'%(options.output,x)),
+                                             )
+                        )
+                process.generation_step+=getattr(process,'rivetAnalyzer'+x)
 
 
