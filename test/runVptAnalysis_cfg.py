@@ -36,6 +36,12 @@ process.load('GeneratorInterface.Core.genFilterSummary_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
+#add particle level producer
+process.load("GeneratorInterface.RivetInterface.genParticles2HepMC_cfi")
+process.load("GeneratorInterface.RivetInterface.particleLevel_cfi")
+process.particleLevel.lepMinPt  = cms.double(15.)
+process.particleLevel.lepMaxEta = cms.double(3.0)
+
 # input configuration
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 process.source=cms.Source('EmptySource')
@@ -84,7 +90,7 @@ process.load('UserCode.VptGenAnalysis.vptAnalysis_cff')
 
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)
-process.analysis_step = cms.Path(process.analysis)
+process.analysis_step = cms.Path(process.genParticles2HepMC*process.particleLevel*process.analysis)
 process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 if options.saveEDM:
