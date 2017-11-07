@@ -7,5 +7,5 @@ analysis = cms.EDAnalyzer("VptGenAnalyzer",
                           mets           = cms.InputTag('particleLevel:mets'),
                           neutrinos      = cms.InputTag('particleLevel:neutrinos'),
                           genEventInfoProduct = cms.InputTag('generator'),
-                          lheEventProduct = cms.InputTag('source')
+                          lheEventProduct = cms.InputTag('externalLHEProducer') #source')
                           )

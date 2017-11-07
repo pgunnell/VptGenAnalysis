@@ -11,7 +11,7 @@ options.register('output',            'data.root',                              
 options.register('saveEDM',           False,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "save EDM output")
 options.register('usePoolSource',     False,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "use LHE from EDM format")
 options.register('input',             '/store/cmst3/user/psilva/Wmass/Wminusj/seed_9_pwgevents.lhe', VarParsing.multiplicity.singleton, VarParsing.varType.string, "input file to process")
-options.register('meWeightsForRivet', '',                                                            VarParsing.multiplicity.singleton, VarParsing.varType.string, "ME weights to apply in RIVET (CSV list)")
+options.register('meWeightsForRivet', ','.join(str(i) for i in range(0,282)),                        VarParsing.multiplicity.singleton, VarParsing.varType.string, "ME weights to apply in RIVET (CSV list)")
 options.register('seed',              123456789,                                                     VarParsing.multiplicity.singleton, VarParsing.varType.int,    "seed to use")
 options.register('nFinal',            2,                                                             VarParsing.multiplicity.singleton, VarParsing.varType.int,    "n particles in final state")
 options.register('genParams',
@@ -126,7 +126,7 @@ if len(options.meWeightsForRivet) :
                                              LHEweightNumber = cms.int32(int(x)),
                                              LHECollection = LHECollection,
                                              HepMCCollection = cms.InputTag('generatorSmeared'),
-                                             OutputFile = cms.string( '%s.w%s.yoda'%(options.output,x)),
+                                             OutputFile = cms.string( 'w%s_%s.yoda'%(x,options.output)),
                                              )
                         )
                 process.generation_step+=getattr(process,'rivetAnalyzer'+x)
