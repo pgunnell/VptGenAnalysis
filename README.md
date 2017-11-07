@@ -4,7 +4,7 @@
 
 ```
 cmsrel CMSSW_8_0_28_patch1
-cd CMSSW_8_0_8_patch1/src
+cd CMSSW_8_0_28_patch1/src
 cmsenv
 git cms-addpkg GeneratorInterface/RivetInterface
 git clone -b 8028_dev git@github.com:pfs/VptGenAnalysis.git UserCode/VptGenAnalysis
