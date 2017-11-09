@@ -1,7 +1,6 @@
 #!/bin/bash
 
 WHAT=${1}
-RIVETSCAN=${2}
 
 script=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/scripts/wrapLocalAnalysisRun.sh;
 cfg=${CMSSW_BASE}/src/UserCode/VptGenAnalysis/test/runVptAnalysis_cfg.py
@@ -11,18 +10,27 @@ export LSB_JOB_REPORT_MAIL=N
 
 case $WHAT in
     TEST )
-	cmsRun ${cfg} output=test saveEDM=False \
-            usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1/120000/FEB8D25D-D0F5-E611-A0E5-0CC47A1DF806.root \
-            seed=1 nFinal=2 \
-            genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,SpaceShower:pTmin=0.894,MultiPartonInteractions:pT0Ref=2.5" \
-            meWeightsForRivet=0
-	#cmsRun ${py8cfg}  output=test hadronizer=ZToMuMu_CUEP8M2T4 seed=1 maxEvents=1000
+	#cmsRun ${cfg} output=test saveEDM=False \
+        #    usePoolSource=True input=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1/120000/FEB8D25D-D0F5-E611-A0E5-0CC47A1DF806.root \
+        #    seed=1 nFinal=2 \
+        #    genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,MultiPartonInteractions:pT0Ref=2.5" \
+        #    weightListForRivet=0;
+
+        cmsRun ${cfg} output=test saveEDM=False \
+            usePoolSource=True \
+            input=/store/mc/RunIISummer15GS/DYToMuMu_M_50_TuneAZ_PDFfix_8TeV_pythia8/GEN/GenOnly_MCRUN2_71_V1-v3/10000/FA9D3615-8788-E711-85F2-0CC47A7AB7A0.root \
+            noHadronizer=True \
+            weightListForRivet=0 useMEWeightsForRivet=False;
 	;;
 
     NTUPLE)
 
-	baseeos=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
-        tag=ZJ_central
+	#baseeos=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
+        #tag=ZJ_central
+
+        baseeos=/store/mc/RunIISummer15GS/DYToMuMu_M_50_TuneAZ_PDFfix_8TeV_pythia8/GEN/GenOnly_MCRUN2_71_V1-v3
+        tag=PY8_TuneAZ
+
 	subdirs=(`eos ls ${baseeos}`);
 	for i in ${subdirs[@]}; do
 	    a=(`eos ls ${baseeos}/${i}`)
@@ -30,14 +38,32 @@ case $WHAT in
 		num=$((num + 1));
 		input=${baseeos}/${i}/${k};
                 
-                genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,SpaceShower:pTmin=0.894,MultiPartonInteractions:pT0Ref=2.5"
-		cmsRun ${cfg} output=${tag}_${num} saveEDM=False usePoolSource=True input=${input} seed=${num} nFinal=2 genParams=${genParams}
-                #echo ${cmd}
-		#bsub -q 2nw $script "${cmd}";
+                #genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,MultiPartonInteractions:pT0Ref=2.5"
+		#cmd="cmsRun ${cfg} output=${tag}_${num} saveEDM=False usePoolSource=True input=${input} seed=${num} nFinal=2 genParams=${genParams}"
+         
+                cmd="cmsRun ${cfg} output=${tag}_${num} saveEDM=False usePoolSource=True input=${input} noHadronizer=True weightListForRivet=0 useMEWeightsForRivet=False"
+                echo ${cmd}
+		bsub -q 2nd $script "${cmd}";
 	    done
 	done
-	
+        ;;
+
+    MERGE )
+        mergeOutput=/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central
+        eos mkdir ${mergeOutput}
+	python scripts/mergeOutputs.py /eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks /eos/cms/${mergeOutput}
 	;;
+
+    RIVET )
+        yodaDir=/eos/cms/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central
+	rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+            -o ~/public/html/ZJ_WM2 \
+	    ${yodaDir}/w0_ZJ_central.yoda:'$(\mu_{R},\mu_{F})=(1,1)$' \
+	    ${yodaDir}/w48_ZJ_central.yoda:'$(\mu_{R},\mu_{F})=(4,4)$' \
+	    ${yodaDir}/w84_ZJ_central.yoda:'$(\mu_{R},\mu_{F})=(1/4,1/4)$' 
+        ;;
+
     RIVETTUNE)
 	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass
 	for p in central ptsqmin4; do
@@ -81,144 +107,7 @@ case $WHAT in
 	    crab submit crab_${j}.py
 	done
 	;;
-    NTUPLEVJscan )
-	lheDir=/store/group/phys_smp/Wmass/perrozzi/powheg/test_Zj_8TeV_ptsqmin4/
-	fcounter=1
-	proc=Zj_ptsqmin4
-	a=(`eos ls ${lheDir}`)
-	for i in ${a[@]}; do
-	    if [[ $i != *"cmsgrid"* ]]
-	    then
-		continue
-	    fi
-	    fcounter=$((fcounter+1))
-	    for k in "${!tunesList[@]}"; do 
-		cff=${tunesList[$k]};
-		tag=${cffTags[$k]};
-		echo "${proc}_${tag}_${fcounter} ${cff}"
-		bsub -q 8nh $script "cmsRun ${lhecfg} output=${proc}_${tag}_${fcounter} input=${lheDir}/${i} ueTune=${cff} nFinal=2 seed=${fcounter}";
-	    done
-	done
-	;;
 
-    NTUPLEVJ )
-
-	#FROM LHE stored in EOS
-	for proc in Zj Wminusj Wplusj; do
-	    lheDir=/store/cmst3/user/psilva/Wmass/${proc}
-	    fcounter=1
-	    a=(`eos ls ${lheDir}`)
-	    for i in ${a[@]}; do
-		if [[ $i == *"cmsgrid"* ]]
-		then
-		    continue
-		fi
-		fcounter=$((fcounter+1))
-		for k in "${!tunesList[@]}"; do 
-		    cff=${tunesList[$k]};
-		    tag=${cffTags[$k]};
-
-		    baseOpts="${lhecfg} output=${proc}_${tag}_${fcounter} input=${lheDir}/${i} ueTune=${cff} nFinal=2 seed=${fcounter}"
-		    if [[ $cff == *"Photos"* ]]
-                    then
-			baseOpts="${baseOpts} photos=True"
-                    fi		    
-		    if [[ $RIVETSCAN == *"True"* ]]
-		    then
-			baseOpts="${baseOpts} doRivetScan=True"
-
-		    fi
-		    #cmsRun ${baseOpts}		    
-		    bsub -q 8nh $script "cmsRun ${baseOpts}";
-		done
-	    done
-	done
-	;;
-    NTUPLEPY8 )
-
-	cffTags=( 
-	    renormup
-	    renormdown
-	    factup
-	    factdown
-	    combup
-	    combdown
-	)
-	tunesList=(
-	    CUEP8M2T4:renormUp
-	    CUEP8M2T4:renormDown
-	    CUEP8M2T4:factorUp
-	    CUEP8M2T4:factorDown
-	    CUEP8M2T4:factorUp:renormUp
-	    CUEP8M2T4:factorDown:renormDown
-	)
-
-	#FROM PY8 STANDALONE
-	for fcounter in `seq 0 250`; do
-	    for proc in WToMuNu; do #ZToMuMu; 
-		for k in "${!cffTags[@]}"; do 
-		    cff=${tunesList[$k]};
-		    tag=${cffTags[$k]};
-		    echo "${proc}_${tag}_${fcounter} ${cff}"
-		    bsub -q 8nh $script "cmsRun ${py8cfg} output=PY8${proc}_${tag}_${fcounter} hadronizer=${proc}_${cff} seed=${fcounter} maxEvents=20000";
-		done
-
-		#echo "${proc}_AZ CT10nlo_as_0118"
-		#bsub -q 8nh $script "cmsRun ${py8cfg} output=PY8${proc}_azct10_${fcounter}      pdfSet=CT10nlo_as_0118 hadronizer=${proc}_AZ seed=${fcounter}        maxEvents=50000";
-		#echo "${proc}_CUEP8M2T4 CT10nlo_as_0118"
-		#bsub -q 8nh $script "cmsRun ${py8cfg} output=PY8${proc}_nominalct10_${fcounter} pdfSet=CT10nlo_as_0118 hadronizer=${proc}_CUEP8M2T4 seed=${fcounter} maxEvents=50000";
-	    done
-	done
-	;;
-    NTUPLEMCRUN2LOCAL)
-
-	baseeosDirs=(
-	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
-	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_hfact0p5/LHE/MCRUN2_71_V1-v1
-	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin4/LHE/MCRUN2_71_V1-v1
-	    /store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_ptsqmin400/LHE/MCRUN2_71_V1-v1
-	)
-	baseTags=(
-	    ZJ_central
-	    ZJ_hfact0p5
-	    ZJ_ptsqmin4
-	    ZJ_ptsqmin400
-	)
-	    
-	for b in "${!baseeosDirs[@]}"; do 
-	    baseeos=${baseeosDirs[$b]};
-	    tag=${baseTags[$b]};
-	    num=0;
-	    subdirs=(`eos ls ${baseeos}`);
-	    for i in ${subdirs[@]}; do
-		a=(`eos ls ${baseeos}/${i}`)
-		for k in ${a[@]}; do		    
-		    num=$((num + 1));
-		    input=${baseeos}/${i}/${k};		    
-		    bsub -q 2nw $script "cmsRun ${lhecfg} output=${tag}_${num} input=${input} ueTune=CUEP8M2T4 photos=True nFinal=2 doRivetScan=True usePoolSource=True"; 
-		done
-	    done
-	done
-
-	;;
-    NTUPLEPW )
-
-	for i in `seq 1 200`; do
-	    for k in "${!cffTags[@]}"; do
-                cff=${tunesList[$k]};
-                tag=${cffTags[$k]};
-       
-		num=$((i + 10000))
-		bsub -q 2nw $script "cmsRun ${lhecfg} output=dy2mumu_ct10_${tag}_${i} input=/store/lhe/5663/DYToMuMu_M-20_CT10_8TeV-powheg_${num}.lhe pdfSet=CT10nlo_as_0118 ueTune=${cff} nFinal=1 seed=${i}"
-	    done
-	done
-
-	;;
-    MERGE )
-	/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse mount eos
-	python scripts/mergeOutputs.py eos/cms/store/cmst3/user/psilva/Wmass/ntuples/Chunks eos/cms/store/cmst3/user/psilva/Wmass/ntuples/TuneScan
-	/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select -b fuse umount eos
-	;;
 
     RIVETPLOTMCRUN2)
 
@@ -247,17 +136,6 @@ case $WHAT in
         #    -o ~/public/html/Zj_check \
         #    ${yodaDir}/ntuples/Zj_nominalphotos.yoda:'PW(Minlo)+PY8 (NNPDF3.0) - private' \
         #    ${yodaDir}/ntuples/ZJ_central.w1.yoda:'PW(Minlo)+PY8 (NNPDF3.0) - central';
-
-	rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
-	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
-            -o ~/public/html/Zj_check \
-	    ${yodaDir}/ntuples/ZJ_central.w59.yoda:'$(\mu_{R},\mu_{F})=(8,4)$' \
-	    ${yodaDir}/ntuples/ZJ_ptsqmin4.w47.yoda:'$ptsqmin=4, (\mu_{R},\mu_{F})=(4,3)$' \
-	    ${yodaDir}/ntuples/ZJ_ptsqmin4.w60.yoda:'$ptsqmin=4, (\mu_{R},\mu_{F})=(8,8)$' 
-            #${yodaDir}/ntuples/ZJ_central.w1.yoda:'PW(Minlo)+PY8 (NNPDF3.0)' \
-            #${yodaDir}/ntuples/ZJ_central.w60.yoda:'$(\mu_{R},\mu_{F})=(8,8)$' \
-            #${yodaDir}/ntuples/ZJ_central.w57.yoda:'$(\mu_{R},\mu_{F})=(8,2)$';
-
 
 	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
         #    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \

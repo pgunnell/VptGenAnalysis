@@ -36,4 +36,10 @@ sh test/macros/steerVptAnalysis.sh MERGE
 
 ## Plotting the RIVET output
 
+This can be done with the standard rivet-mkhtml command. An example can be found runnning 
+
+```
+sh test/macros/steerVptAnalysis.sh RIVET
+```
+
 ## Analysing the ntuples

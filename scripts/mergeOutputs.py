@@ -28,12 +28,12 @@ def getBaseNames(dirname,reqExt):
             #except:
             #    pass
             basename, number = filename.rsplit('_',1)            
-            if not number == 'missing' and not isint(number):
-                if 'w' in number: 
-                    number,sec_ext=number.split('w')
-                    sec_ext ='w%s'%sec_ext
-                if not isint(number):
-                    raise ValueError
+            #if not number == 'missing' and not isint(number):
+                #if 'w' in number: 
+                #    number,sec_ext=number.split('w')
+                #    sec_ext ='w%s'%sec_ext
+            if not isint(number):
+                raise ValueError
             if len(sec_ext)!=0: basename=basename+sec_ext
             if (not goodFile):
                 badFiles.append(dirname+'/'+item)
@@ -82,7 +82,7 @@ for ext in ['.root','.yoda']:
             cmd = 'hadd -f -k %s %s' % (target, filenames)
             #print cmd
             os.system(cmd)
-            os.system('rm %s'%filenames)
+            #os.system('rm %s'%filenames)
 
         else:
             target = os.path.join(outputdir,"%s.yoda" % basename)
@@ -93,7 +93,7 @@ for ext in ['.root','.yoda']:
                 cmd = 'yodamerge -o %s %s' % (target, filenames)
                 #print cmd
                 os.system(cmd)
-                os.system('rm %s'%filenames)
+                #os.system('rm %s'%filenames)
 
 if (len(badFiles) > 0):
     print '-----------------------'

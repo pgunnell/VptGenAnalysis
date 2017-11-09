@@ -11,16 +11,18 @@ options.register('output',            'data.root',                              
 options.register('saveEDM',           False,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "save EDM output")
 options.register('usePoolSource',     False,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "use LHE from EDM format")
 options.register('input',             '/store/cmst3/user/psilva/Wmass/Wminusj/seed_9_pwgevents.lhe', VarParsing.multiplicity.singleton, VarParsing.varType.string, "input file to process")
-options.register('meWeightsForRivet', ','.join(str(i) for i in range(0,282)),                        VarParsing.multiplicity.singleton, VarParsing.varType.string, "ME weights to apply in RIVET (CSV list)")
+options.register('noHadronizer',     False,                                                          VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "skip hadronization")
+options.register('useMEWeightsForRivet',     True,                                                          VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "use LHE weights")
+options.register('weightListForRivet', ','.join(str(i) for i in range(0,121)),                        VarParsing.multiplicity.singleton, VarParsing.varType.string, "Weight list to apply in RIVET (CSV list)")
 options.register('seed',              123456789,                                                     VarParsing.multiplicity.singleton, VarParsing.varType.int,    "seed to use")
 options.register('nFinal',            2,                                                             VarParsing.multiplicity.singleton, VarParsing.varType.int,    "n particles in final state")
 options.register('genParams',
-		 'ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,SpaceShower:pTmin=0.894,MultiPartonInteractions:pT0Ref=2.5,photos=False',
+		 'photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,BeamRemnants:primordialKThard=2.722,MultiPartonInteractions:pT0Ref=2.5',
                  VarParsing.multiplicity.singleton, VarParsing.varType.string, "UE snippet (ueTune), photos usage, pythia8 parameters (CSV list of param=val)"
                  )
 options.parseArguments()
 
-process = cms.Process('GEN')
+process = cms.Process('ANA' if options.noHadronizer else 'GEN' )
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -73,11 +75,14 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_v1', '')
 
 #generator definition
-from UserCode.VptGenAnalysis.GenConfigTools import configureGenerator
-configureGenerator(options,process)
-process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
-print 'Seed set to %d'%options.seed
-process.ProductionFilterSequence = cms.Sequence(process.generator)
+if not options.noHadronizer:
+        from UserCode.VptGenAnalysis.GenConfigTools import configureGenerator
+        configureGenerator(options,process)
+        process.RandomNumberGeneratorService.generator.initialSeed=cms.untracked.uint32(options.seed)
+        print 'Seed set to %d'%options.seed
+        process.ProductionFilterSequence = cms.Sequence(process.generator)
+else:
+        print 'Source has already been hadronized, skipping generator sequence'
 
 #tfile service                                                                                                                                                                
 process.TFileService = cms.Service("TFileService",
@@ -87,6 +92,7 @@ process.TFileService = cms.Service("TFileService",
 
 # add analysis
 process.load('UserCode.VptGenAnalysis.vptAnalysis_cff')
+process.analysis.lheEventProduct = cms.InputTag('externalLHEProducer::LHE') if options.usePoolSource else cms.InputTag('source')
 
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)
@@ -105,30 +111,36 @@ if options.saveEDM:
 						splitLevel = cms.untracked.int32(0)
 						)
 	process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
-	process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
+        if options.noHadronizer:
+                process.schedule = cms.Schedule(process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
+        else:
+                process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step,process.RAWSIMoutput_step)
 else:
-	process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step)
+        if options.noHadronizer:
+                process.schedule = cms.Schedule(process.analysis_step, process.genfiltersummary_step, process.endjob_step)
+        else:
+                process.schedule = cms.Schedule(process.generation_step, process.analysis_step, process.genfiltersummary_step, process.endjob_step)
 
 # filter all path with the production filter sequence
-for path in process.paths:
-	getattr(process,path)._seq = process.ProductionFilterSequence * getattr(process,path)._seq
+if not options.noHadronizer:
+        for path in process.paths:
+                getattr(process,path)._seq = process.ProductionFilterSequence * getattr(process,path)._seq
 
 #add RIVET routines if needed
 from GeneratorInterface.RivetInterface.rivetAnalyzer_cfi import rivetAnalyzer
-if len(options.meWeightsForRivet) :
-        print 'Enabling RIVET plugins for the following weights',options.meWeightsForRivet
-        for x in options.meWeightsForRivet.split(','):
-                LHECollection = cms.InputTag('externalLHEProducer') if options.usePoolSource else cms.InputTag('source')
+if len(options.weightListForRivet) :
+        print 'Enabling RIVET plugins for the following weights',options.weightListForRivet
+        for x in options.weightListForRivet.split(','):
                 setattr(process, 'rivetAnalyzer'+x,
                         rivetAnalyzer.clone( AnalysisNames = cms.vstring('ATLAS_2015_I1408516_MU'),
-                                             UseExternalWeight = cms.bool(True),
-                                             useLHEweights = cms.bool(True),
+                                             UseExternalWeight = cms.bool(options.useMEWeightsForRivet),
+                                             useLHEweights = cms.bool(options.useMEWeightsForRivet),
                                              LHEweightNumber = cms.int32(int(x)),
-                                             LHECollection = LHECollection,
-                                             HepMCCollection = cms.InputTag('generatorSmeared'),
+                                             LHECollection = process.analysis.lheEventProduct,
+                                             HepMCCollection = cms.InputTag('generator' if options.noHadronizer else 'generatorSmeared'),
                                              OutputFile = cms.string( 'w%s_%s.yoda'%(x,options.output)),
                                              )
                         )
-                process.generation_step+=getattr(process,'rivetAnalyzer'+x)
+                process.analysis_step+=getattr(process,'rivetAnalyzer'+x)
 
 
