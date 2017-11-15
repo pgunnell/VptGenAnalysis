@@ -115,27 +115,16 @@ case $WHAT in
 
     ANA )
         baseDir=/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central/
-	NBINS=100
         a=(`ls /eos/cms/${baseDir}/*.root`)
+
         template=plots/ana_template.root
-        rm ${template}
+        #python test/macros/runNtupleAnalysis.py  --nbins 50 -o ${template} -i ${a[0]};      
+        
         for i in ${a[@]}; do
             oname=`basename ${i}`;
             echo ${i} ${oname}
-            baseOpts="--nbins ${NBINS} -c \"nl==2\""
-            if [ -f "${template}" ]; then
-               baseOpts="${baseOpts} -templ ${template}"
-            fi
-            python test/macros/runNtupleAnalysis.py  ${baseOpts} -o plots/${oname} -i ${i};      
-            if [ ! -f "${template}" ]; then
-                echo "Creating symbolic link for template"
-                ln -s ${template} plots/${oname}
-            fi     
+            python test/macros/runNtupleAnalysis.py  --templ ${template} -o plots/${oname} -i ${i} &      
         done
-
-        #
-        #
-	#python test/macros/runNtupleAnalysis.py --nbins ${NBINS} -o Zj_nominal.root     -i /store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root       -c nl==2;
         ;;
 
 
