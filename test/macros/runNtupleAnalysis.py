@@ -20,8 +20,10 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
     
     #analyse events in trees
     data=ROOT.TChain('analysis/data')
-    data.AddFile('root://eoscms//eos/cms/%s'%opt.input)
-
+    if opt.input.find('/store')==0 :
+        data.AddFile('root://eoscms//eos/cms/%s'%opt.input)
+    else:
+        data.AddFile(opt.input)
     nevts=data.GetEntries()
     cut=ROOT.TTreeFormula('cuts',opt.cuts,data)
     print '[parseDataFromTree] with %d'%nevts
@@ -55,11 +57,11 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
         #fill the lepton kinematics depending on whether it's a W or a Z like candidate
         if data.nl>1:
             for il in xrange(0,2):
-                lp4[il].SetPtEtaPhiM(data.dressed_pt[il],data.dressed_eta[il],data.dressed_phi[il],data.dressed_m[il])
+                lp4[il].SetPtEtaPhiM(data.pt[il],data.eta[il],data.phi[il],data.m[il])
             if lp4[0].Pt()<20 or lp4[1].Pt()<1 or ROOT.TMath.Abs(lp4[0].Eta())>2.5 or ROOT.TMath.Abs(lp4[1].Eta())>2.5 : continue
         else:
-            lp4[0].SetPtEtaPhiM(data.dressed_pt[0],data.dressed_eta[0],data.dressed_phi[0],data.dressed_m[0])
-            lp4[1].SetPtEtaPhiM(data.imbalance_pt[0],data.imbalance_eta[0],data.imbalance_phi[0],0.)
+            lp4[0].SetPtEtaPhiM(data.pt[0],data.eta[0],data.phi[0],data.m[0])
+            lp4[1].SetPtEtaPhiM(data.nusum_pt,data.nusum_eta,data.nusum_phi,0.)
             if lp4[0].Pt()<20 or ROOT.TMath.Abs(lp4[0].Eta())>2.5 : continue
 
         nevtsSel+=1
@@ -67,35 +69,17 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
         #charge selection
         if opt.charge!=0 and data.charge[0]!=opt.charge : continue
 
+        #lepton kinematics
+        varVals=[lp4[0].Pt(), lp4[0].Rapidity(), lp4[1].Pt(), lp4[1].Rapidity()]
+
         #vector boson kinematics
         vpt = lp4[0]+lp4[1]
+        varVals += [vpt.M(), vpt.Pt(), vpt.Rapidity()]
 
-        #generator vector boson
-        vecbos=ROOT.TLorentzVector(0,0,0,0)
-        vecbos.SetPtEtaPhiM(data.vecbos_pt,data.vecbos_eta,data.vecbos_phi,data.vecbos_m)
-
-        varVals=[vecbos.M(), vecbos.Pt(), vecbos.Rapidity(), vpt.M(), vpt.Pt(), vpt.Rapidity(), lp4[0].Pt(), lp4[0].Rapidity(), lp4[1].Pt(), lp4[1].Rapidity()]
-        
-        #full event balance
+        #MET and transverse mass
         met=ROOT.TLorentzVector(0,0,0,0)
-        met.SetPtEtaPhiM(data.imbalance_pt[1],data.imbalance_eta[1],data.imbalance_phi[1],0.)
-        varVals += [ met.Pt() ]
-
-        #true met + MT
-        truemet=ROOT.TLorentzVector(0,0,0,0)
-        truemet.SetPtEtaPhiM(data.imbalance_pt[0],data.imbalance_eta[0],data.imbalance_phi[0],0.)
-        if data.nl>=2 : truemet += lp4[1]
-        varVals += [ truemet.Pt(), calcMt(p1=lp4[0],p2=truemet) ]
-
-        #met + MT
-        met += truemet
+        met.SetPtEtaPhiM(data.genmet_pt,data.genmet.eta,data.genmet_phi,0.)
         varVals += [ met.Pt(), calcMt(p1=lp4[0],p2=met) ]
-
-        #chmet + MT
-        chmet=ROOT.TLorentzVector(0,0,0,0)
-        chmet.SetPtEtaPhiM(data.imbalance_pt[2],data.imbalance_eta[2],data.imbalance_phi[2],0.)
-        if data.nl>=2 : chmet += lp4[1]
-        varVals += [ chmet.Pt(), calcMt(p1=lp4[0],p2=chmet) ]
 
         if histos:
             for iv in xrange(0,len(varVals)):
@@ -139,7 +123,7 @@ def fillHistos(opt) :
     except:
         pass
 
-    data=parseDataFromTree(opt,maxPerc=1.0,histos=None)
+    data=parseDataFromTree(opt,maxPerc=50.0,histos=None)
     print '[fillHistos] defining templates for %d variables and %d selected events'%(len(data[0][0]),len(data[0]))
 
     #compute quantiles for n bins
@@ -201,9 +185,9 @@ def main():
     #configuration
     usage = 'usage: %prog [options]'
     parser = optparse.OptionParser(usage)
-    parser.add_option('-i', '--in',     dest='input',   help='input file [%default]',       default='/store/cmst3/user/psilva/Wmass/ntuples/Zj_nominal.root', type='string')
+    parser.add_option('-i', '--in',     dest='input',   help='input file [%default]',       default='/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central/ZJ_central.root', type='string')
     parser.add_option(      '--nbins',  dest='nbins',   help='n bins [%default]',           default=100,                                                       type=int)
-    parser.add_option('-o', '--out',    dest='output',  help='output file [%default]',      default='Zj_nominal.root',                                        type='string')
+    parser.add_option('-o', '--out',    dest='output',  help='output file [%default]',      default='ZJ_central.root',                                        type='string')
     parser.add_option('-c', '--cuts',   dest='cuts',    help='simple cuts to apply to the tree [%default]', default='nl==2',                                  type='string')
     parser.add_option('-w', '--wgt',    dest='wgtList', help='weight list (csv)[%default]', default='',                                                       type='string')
     parser.add_option(      '--iniWgt', dest='iniWgt',  help='include initial state weights [%default]', default=False,                                       action='store_true')

@@ -50,6 +50,8 @@ c.SetLogz()
 c.SetLogx()
 c.SetLogy()
 
+optimResults={}
+
 for name,title in plotList:
 
     dataH=getPlotFrom('plots/ATLAS_2015_I1408516_MU.root',name,'data')
@@ -58,8 +60,7 @@ for name,title in plotList:
     wgtIdxmin=1
     for wgtIdx,muR,muF in wgtList:
         
-        #h=getPlotFrom('plots/ZJ_central.w%d.root'%wgtIdx,name,'mc')
-        h=getPlotFrom('plots/ZJ_ptsqmin4.w%d.root'%wgtIdx,name,'mc')
+        h=getPlotFrom('plots/w%d_ZJ_central.root'%wgtIdx,name,'mc')
 
         chi2,ndof=0.,0
         for xbin in xrange(1,h.GetNbinsX()+1):
@@ -92,7 +93,7 @@ for name,title in plotList:
     txt.SetTextFont(42)
     txt.SetTextSize(0.03)
     txt.SetTextAlign(12)
-    txt.DrawLatex(0.15,0.95,'#bf{CMS} #it{simulation}, #bf{ATLAS} #it{data}')
+    txt.DrawLatex(0.15,0.95,'#bf{CMS} #it{simulation}, #bf{ATLAS} #it{data} (#sqrt{s}=8 TeV)')
     txt.DrawLatex(0.15,0.9,title)
     
     gr=ROOT.TGraph()
@@ -100,8 +101,34 @@ for name,title in plotList:
     gr.SetPoint(0,muRmin,muFmin)
     gr.Draw('p')
 
-    print name,muRmin,muFmin,wgtIdxmin
+    key=(muRmin,muFmin)
+    if not key in optimResults: optimResults[key]=0
+    optimResults[key]+=1
 
     c.Modified()
     c.Update()
-    c.SaveAs('%s.png'%(name))
+    for ext in ['png','pdf']:
+        c.SaveAs('plots/%s.%s'%(name,ext))
+
+c.Clear()
+c.SetLogy(False)
+c.SetLogx(False)
+hsummary=ROOT.TH1F('summary',';(#mu_{R},#mu_{F});# distributions',len(optimResults),0,len(optimResults))
+xbin=1
+for key in optimResults:
+    hsummary.SetBinContent(xbin,optimResults[key])
+    hsummary.GetXaxis().SetBinLabel(xbin,'(%3.1f,%3.1f)'%key)
+    xbin+=1
+hsummary.SetLineWidth(2)
+hsummary.GetYaxis().SetRangeUser(0,len(optimResults)*0.9)
+hsummary.Draw('hist')
+txt=ROOT.TLatex()
+txt.SetNDC(True)
+txt.SetTextFont(42)
+txt.SetTextSize(0.03)
+txt.SetTextAlign(12)
+txt.DrawLatex(0.15,0.95,'#bf{CMS} #it{simulation}, #bf{ATLAS} #it{data} (#sqrt{s}=8 TeV)')
+c.Modified()
+c.Update()
+for ext in ['png','pdf']:
+    c.SaveAs('plots/optimsummary.%s'%(ext))

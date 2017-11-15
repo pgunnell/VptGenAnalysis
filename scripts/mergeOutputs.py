@@ -71,25 +71,30 @@ for ext in ['.root','.yoda']:
     print 'Will process the following samples:', basenames
 
     for basename, files in counters.iteritems():
-
-        filenames = " ".join(files)
     
         # merging:
         print '... processing', basename
     
         if ext=='.root':
-            target = os.path.join(outputdir,"%s.root" % basename)
-            cmd = 'hadd -f -k %s %s' % (target, filenames)
-            #print cmd
-            os.system(cmd)
-            #os.system('rm %s'%filenames)
+            
+            #make groups of five files
+            splitFunc = lambda A, n=10: [A[i:i+n] for i in range(0, len(A), n)]
+            split_file_lists = splitFunc( files )
+            for ilist in xrange(0,len(split_file_lists)):
+                target = os.path.join(outputdir,"%s_%d.root" % (basename,ilist))
+                filenames=' '.join(split_file_lists[ilist])
+                cmd = 'hadd -f -k %s %s' % (target, filenames)
+                #print cmd
+                os.system(cmd)           
 
         else:
             target = os.path.join(outputdir,"%s.yoda" % basename)
             if len(files)==1:
                 cmd='mv -v %s %s'%(files[0],target)
                 os.system(cmd)
-            else:                
+            else:
+                #all files to one
+                filenames = " ".join(files)                
                 cmd = 'yodamerge -o %s %s' % (target, filenames)
                 #print cmd
                 os.system(cmd)
