@@ -36,8 +36,8 @@ case $WHAT in
 	baseeos=/store/mc/RunIIWinter15wmLHE/WminusJ_WToMuNu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
         tag=WminusJ_central
         
-        #baseeos=/store/mc/RunIIWinter15wmLHE/WplusJ_WToMuNu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
-        #tag=WplusJ_central
+        baseeos=/store/mc/RunIIWinter15wmLHE/WplusJ_WToMuNu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
+        tag=WplusJ_central
 
         #baseeos=/store/mc/RunIISummer15GS/DYToMuMu_M_50_TuneAZ_PDFfix_8TeV_pythia8/GEN/GenOnly_MCRUN2_71_V1-v3
         #tag=PY8_TuneAZ
@@ -54,7 +54,7 @@ case $WHAT in
          
                 #cmd="cmsRun ${cfg} output=${tag}_${num} saveEDM=False usePoolSource=True input=${input} noHadronizer=True weightListForRivet=0 useMEWeightsForRivet=False"
                 echo ${cmd}
-		bsub -q 2nd $script "${cmd}";
+		bsub -q 2nw $script "${cmd}";
 	    done
 	done
         ;;
@@ -62,8 +62,10 @@ case $WHAT in
     MERGE )
         mergeOutput=/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central
         chunksDir=/store/cmst3/user/psilva/Wmass/ntuples/Chunks
-        python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} ZJ_central
-        python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} PY8_TuneAZ
+        #python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} ZJ_central
+        #python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} PY8_TuneAZ
+        python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} WplusJ_central
+        python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} WminusJ_central
         eos mkdir ${mergeOutput}
 	python scripts/mergeOutputs.py /eos/cms/${chunksDir} /eos/cms/${mergeOutput}
 	;;
@@ -118,7 +120,7 @@ case $WHAT in
         a=(`ls /eos/cms/${baseDir}/*.root`)
 
         template=plots/ana_template.root
-        #python test/macros/runNtupleAnalysis.py  --nbins 50 -o ${template} -i ${a[0]};      
+        python test/macros/runNtupleAnalysis.py --nbins 20 -o ${template} -i /eos/cms/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central/WplusJ_central_0.root
         
         for i in ${a[@]}; do
             oname=`basename ${i}`;
@@ -126,7 +128,12 @@ case $WHAT in
             python test/macros/runNtupleAnalysis.py  --templ ${template} -o plots/${oname} -i ${i} &      
         done
         ;;
-
+    MERGEANA )
+        for i in ZJ_central WplusJ_central WminusJ_central PY8_TuneAZ; do
+            rm plots/${i}_merged.root;
+            hadd -f -k plots/${i}_merged.root plots/${i}_*.root;
+        done
+        ;;
 
     RIVETTUNE)
 	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass

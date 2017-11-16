@@ -16,9 +16,13 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
     fIn=ROOT.TFile.Open(url)
     data=fIn.Get('analysis/data')
     nevts=data.GetEntries()
-    cut=ROOT.TTreeFormula('cuts',opt.cuts,data)
     print '[parseDataFromTree] with %d'%nevts
-    print '\t pre-selection to be applied is %s'%opt.cuts
+    cut=None
+    if opt.cuts:
+        cut=ROOT.TTreeFormula('cuts',opt.cuts,data)
+        print '\t pre-selection to be applied is %s'%opt.cuts
+
+    isW = True if 'WplusJ' in url or 'WminusJ' in url else False
 
     #replicate histos (1 per weight)
     if histos:
@@ -50,9 +54,10 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
 
         #presel events (it may issue a warning which can be safely disregarded)
         #cf https://root.cern.ch/phpBB3/viewtopic.php?t=14213
-        if not cut.EvalInstance() : continue
+        if cut and not cut.EvalInstance() : continue
 
         #fill the lepton kinematics depending on whether it's a W or a Z like candidate
+        if not isW and data.nl<2: continue
         if data.nl>1:
             for il in xrange(0,2):
                 lp4[il].SetPtEtaPhiM(data.pt[il],data.eta[il],data.phi[il],data.m[il])
@@ -77,7 +82,8 @@ def parseDataFromTree(opt,histos=None,maxPerc=25):
         varVals += [ met.Pt(), calcMt(p1=lp4[0],p2=met) ]
 
         #recoil
-        recoil=met+lp4[0]+lp4[1]
+        recoil=met+lp4[0]
+        if not isW: recoil+=lp4[1]
         varVals += [recoil.Pt()]
 
         #weights
@@ -167,7 +173,7 @@ def main():
     parser.add_option('-i', '--in',     dest='input',   help='input file [%default]',       default='/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central/ZJ_central.root', type='string')
     parser.add_option(      '--nbins',  dest='nbins',   help='n bins [%default]',           default=100,                                                       type=int)
     parser.add_option('-o', '--out',    dest='output',  help='output file [%default]',      default='ZJ_central.root',                                        type='string')
-    parser.add_option('-c', '--cuts',   dest='cuts',    help='simple cuts to apply to the tree [%default]', default='nl==2',                                  type='string')
+    parser.add_option('-c', '--cuts',   dest='cuts',    help='simple cuts to apply to the tree [%default]', default=None,                                  type='string')
     parser.add_option(      '--templ',  dest='templ',   help='histogram templates (keep binning) [%default]', default=None,                                   type='string')
     (opt, args) = parser.parse_args()
 
