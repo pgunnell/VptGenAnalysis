@@ -86,7 +86,7 @@ for ext in ['.root','.yoda']:
                 cmd = 'hadd -f -k %s %s' % (target, filenames)
                 #print cmd
                 os.system(cmd)           
-
+                os.system('rm %s'%filenames)
         else:
             target = os.path.join(outputdir,"%s.yoda" % basename)
             if len(files)==1:
@@ -98,7 +98,7 @@ for ext in ['.root','.yoda']:
                 cmd = 'yodamerge -o %s %s' % (target, filenames)
                 #print cmd
                 os.system(cmd)
-                #os.system('rm %s'%filenames)
+                os.system('rm %s'%filenames)
 
 if (len(badFiles) > 0):
     print '-----------------------'

@@ -32,7 +32,7 @@ case $WHAT in
 
 	#baseeos=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
         #tag=ZJ_central
-
+        
 	baseeos=/store/mc/RunIIWinter15wmLHE/WminusJ_WToMuNu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
         tag=WminusJ_central
         
@@ -54,7 +54,7 @@ case $WHAT in
          
                 #cmd="cmsRun ${cfg} output=${tag}_${num} saveEDM=False usePoolSource=True input=${input} noHadronizer=True weightListForRivet=0 useMEWeightsForRivet=False"
                 echo ${cmd}
-		bsub -q 2nw $script "${cmd}";
+		bsub -q 2nd -R "pool>30000" $script "${cmd}";
 	    done
 	done
         ;;
@@ -62,28 +62,37 @@ case $WHAT in
     MERGE )
         mergeOutput=/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central
         chunksDir=/store/cmst3/user/psilva/Wmass/ntuples/Chunks
-        #python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} ZJ_central
-        #python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} PY8_TuneAZ
-        python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} WplusJ_central
-        python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} WminusJ_central
+        for tag in WplusJ_central WminusJ_central ZJ_central PY8_TuneAZ; do
+            python test/macros/checkNtupleIntegrity.py /eos/cms/${chunksDir} ${tag}
+        done
         eos mkdir ${mergeOutput}
 	python scripts/mergeOutputs.py /eos/cms/${chunksDir} /eos/cms/${mergeOutput}
 	;;
 
     RIVET )
         yodaDir=/eos/cms/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central
-	rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
-	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
-            -o ~/public/html/ZJ_WM2 \
-	    ${yodaDir}/w0_ZJ_central.yoda:'PW WM2 $(\mu_{R},\mu_{F})=(1,1)$' \
-            ${yodaDir}/w48_ZJ_central.yoda:'PW WM2 $(\mu_{R},\mu_{F})=(4,4)$' \
-            ${yodaDir}/w0_PY8_TuneAZ.yoda:'PY8 AZ'
- 
-	rivet-mkhtml -s --times \
-	    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
-            -o ~/public/html/ZJ_WM2_PY8 \
-            ${yodaDir}/w0_PY8_TuneAZ.yoda:'PY8 AZ' \
-	    ${yodaDir}/w48_ZJ_central.yoda:'PW WM2 $(\mu_{R},\mu_{F})=(4,4)$' 
+	#rivet-mkhtml -s --times ../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.yoda:'data' \
+	#    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/ZJ_WM2 \
+	#    ${yodaDir}/w0_ZJ_central.yoda:'PW WM2 $(\mu_{R},\mu_{F})=(1,1)$' \
+        #    ${yodaDir}/w48_ZJ_central.yoda:'PW WM2 $(\mu_{R},\mu_{F})=(4,4)$' \
+        #    ${yodaDir}/w0_PY8_TuneAZ.yoda:'PY8 AZ'
+        #
+	#rivet-mkhtml -s --times \
+	#    --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+        #    -o ~/public/html/ZJ_WM2_PY8 \
+        #    ${yodaDir}/w0_PY8_TuneAZ.yoda:'PY8 AZ' \
+	#    ${yodaDir}/w48_ZJ_central.yoda:'PW WM2 $(\mu_{R},\mu_{F})=(4,4)$' 
+
+
+        rivet-mkhtml -s --times \
+            --config=../../GeneratorInterface/RivetInterface/data/ATLAS_2015_I1408516_MU.plot \
+            -o ~/public/html/ZJ_WM2_primKt \
+            ${yodaDir}/w48_ZJ_central.yoda:'WM2' \
+            ${yodaDir}/w48_ZJ_kth18_kts05_kths18.yoda:'$k_{T}^{h}=1.8~Q_{1/2}=1.8$' \
+            ${yodaDir}/w48_ZJ_kth27_kts05_kths05.yoda:'$Q_{1/2}=0.5$' \
+            ${yodaDir}/w48_ZJ_kth27_kts05_kths20.yoda:'$Q_{1/2}=2.0$'
+
         ;;
 
     RIVET2ROOT )
@@ -94,18 +103,10 @@ case $WHAT in
 	mkdir -p plots
 	cd plots
 	yoda2root.py ../data/ATLAS_2015_I1408516_MU.yoda
-	baseTags=(
-            ZJ_central
-            PY8_TuneAZ
-        )
-	for i in ${baseTags[@]}; do
-	    for w in `seq 0 121`; do
-                file=${yodaDir}/w${w}_${i}.yoda
-                if [ -f ${file} ]; then 
-	            echo "Converting $file"
-	            yoda2root.py ${file}
-                fi
-	    done
+	a=(`ls ${yodaDir}/*.yoda`)
+        for file in ${a[@]}; do 
+	    echo "Converting $file"
+	    yoda2root.py ${file}
 	done
 	cd -
 	;;
@@ -120,7 +121,7 @@ case $WHAT in
         a=(`ls /eos/cms/${baseDir}/*.root`)
 
         template=plots/ana_template.root
-        python test/macros/runNtupleAnalysis.py --nbins 20 -o ${template} -i /eos/cms/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central/WplusJ_central_0.root
+        #python test/macros/runNtupleAnalysis.py --nbins 20 -o ${template} -i /eos/cms/store/cmst3/user/psilva/Wmass/ntuples/ZJ_central/WplusJ_central_0.root
         
         for i in ${a[@]}; do
             oname=`basename ${i}`;
@@ -134,6 +135,43 @@ case $WHAT in
             hadd -f -k plots/${i}_merged.root plots/${i}_*.root;
         done
         ;;
+
+    NTUPLESCAN)
+
+	baseeos=/store/mc/RunIIWinter15wmLHE/ZJ_ZToMuMu_powheg_minlo_8TeV_NNPDF30_central/LHE/MCRUN2_71_V1-v1
+        subdirs=(`eos ls ${baseeos}`);
+        paramsToScan=(
+            "BeamRemnants:primordialKTsoft=0.5,BeamRemnants:halfScaleForKT=1.0"
+            "BeamRemnants:primordialKTsoft=1.6,BeamRemnants:halfScaleForKT=1.0"
+            "BeamRemnants:primordialKTsoft=2.7,BeamRemnants:halfScaleForKT=1.0"
+            "BeamRemnants:primordialKTsoft=0.5,BeamRemnants:halfScaleForKT=1.9"
+            "BeamRemnants:primordialKTsoft=1.6,BeamRemnants:halfScaleForKT=1.9"
+            "BeamRemnants:primordialKTsoft=2.7,BeamRemnants:halfScaleForKT=1.9"
+            "BeamRemnants:primordialKTsoft=0.5,BeamRemnants:halfScaleForKT=2.7"
+            "BeamRemnants:primordialKTsoft=1.6,BeamRemnants:halfScaleForKT=2.7"
+            "BeamRemnants:primordialKTsoft=2.7,BeamRemnants:halfScaleForKT=2.7"
+        )
+        tags=(ZJ_kts05_kths10 ZJ_kts16_kths10 ZJ_kts27_kths10 ZJ_kts05_kths19 ZJ_kts16_kths19 ZJ_kts27_kths19 ZJ_kts05_kths27 ZJ_kts16_kths27 ZJ_kts27_kths27)
+        for k in ${!tags[@]}; do
+            tag=${tags[$k]};
+	    specParams=${paramsToScan[$k]};
+            echo $tag $specParams;
+	    for i in ${subdirs[@]}; do
+	        a=(`eos ls ${baseeos}/${i}`)
+	        for k in ${a[@]}; do		    
+		    num=$((num + 1));
+		    input=${baseeos}/${i}/${k};
+                
+                    genParams="photos=off,ueTune=CUETP8M1,SpaceShower:alphaSvalue=0.100,MultiPartonInteractions:pT0Ref=2.5,${specParams}"
+		    cmd="cmsRun ${cfg} output=${tag}_${num} saveTuple=False saveEDM=False usePoolSource=True input=${input} seed=${num} nFinal=2 genParams=${genParams} weightListForRivet=48"  
+                    echo ${cmd}
+		    bsub -q 2nd -R "pool>30000" $script "${cmd}";
+	        done
+	    done
+        done
+        ;;
+
+
 
     RIVETTUNE)
 	yodaDir=eos/cms/store/cmst3/user/psilva/Wmass

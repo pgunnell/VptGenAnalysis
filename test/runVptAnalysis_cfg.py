@@ -9,6 +9,7 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 options = VarParsing ('python')
 options.register('output',            'data.root',                                                   VarParsing.multiplicity.singleton, VarParsing.varType.string, "Output file name")
 options.register('saveEDM',           False,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "save EDM output")
+options.register('saveTuple',         True,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "save flat ntuple output")
 options.register('usePoolSource',     False,                                                         VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "use LHE from EDM format")
 options.register('input',             '/store/cmst3/user/psilva/Wmass/Wminusj/seed_9_pwgevents.lhe', VarParsing.multiplicity.singleton, VarParsing.varType.string, "input file to process")
 options.register('noHadronizer',     False,                                                          VarParsing.multiplicity.singleton, VarParsing.varType.bool,   "skip hadronization")
@@ -96,9 +97,12 @@ process.analysis.lheEventProduct = cms.InputTag('externalLHEProducer::LHE') if o
 
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)
-process.analysis_step = cms.Path(process.genParticles2HepMC*process.particleLevel*process.analysis)
+process.analysis_step = cms.Path(process.genParticles2HepMC*process.particleLevel)
+if options.saveTuple:
+        process.analysis_step = cms.Path(process.genParticles2HepMC*process.particleLevel*process.analysis)
 process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
 process.endjob_step = cms.EndPath(process.endOfProcess)
+
 if options.saveEDM:
 	process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
 						SelectEvents = cms.untracked.PSet( SelectEvents = cms.vstring('generation_step') ),

@@ -100,7 +100,7 @@ def drawHistos(histos,ran,name):
     c.Update()
     for ext in ['png','pdf']:
         c.SaveAs('plots/%s.%s'%(name,ext))
-    raw_input()
+    
     
 histos={}
 for proc,color in [('ZJ_central',     ROOT.TColor.GetColor('#5e3c99')),
@@ -139,10 +139,10 @@ for v in histos['ZJ_central'][1]:
     if v=='v0': ran=(20.1,60)
     if v=='v2': ran=(20.1,45)
     if v=='v4': ran=(60,100)
-    if v=='v5': ran=(0.1,50)
+    if v=='v5': ran=(0.1,45)
     if v=='v7': ran=(0.1,80)
     if v=='v8': ran=(0.1,90)
-    if v=='v9': ran=(0.1,50)
+    if v=='v9': ran=(0.1,30)
 
     drawHistos(histos=mainHistos,ran=ran,name=v)
     drawHistos(histos=ratioHistos,ran=ran,name=v+'_ratio')
